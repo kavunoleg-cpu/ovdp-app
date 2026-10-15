@@ -9,34 +9,15 @@ st.set_page_config(page_title="ОВДП Ultimate Портфель", page_icon="�
 
 DATA_FILE = "ovdp_pro_data.json"
 
-# --- КАСТОМНІ CSS СТИЛІ (Яскраві білі цифри, рамки карток та кольорові кнопки) ---
+# --- КАСТОМНІ CSS СТИЛІ (Яскраві білі цифри для шапки) ---
 st.markdown("""
     <style>
     /* Робимо всі цифри та тексти в метриках яскраво-білими і чіткими */
     [data-testid="stMetricValue"], [data-testid="stMetricLabel"], [data-testid="stMetricDelta"] {
         color: #ffffff !important;
     }
-    
-    /* Чіткі білі цифри для шапки метрик */
     div[data-testid="metric-container"] * {
         color: #ffffff !important;
-    }
-
-    /* Акуратна рамка навколо кожної картки облігації */
-    .ovdp-card {
-        border: 2px solid #3498db;
-        border-radius: 12px;
-        padding: 15px;
-        margin-bottom: 15px;
-        background-color: rgba(255, 255, 255, 0.03);
-    }
-    
-    /* Компактні кнопки та їх кольори */
-    div[data-testid="column"] button {
-        border-radius: 8px !important;
-        font-weight: bold !important;
-        width: 100% !important;
-        padding: 6px 10px !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -125,7 +106,7 @@ total_net_profit = sum((b["coupon"] * b.get("total_coupons", 6) - (b["price"] - 
 total_payout = sum((1000.0 * b["qty"]) + ((b["coupon"] * b.get("total_coupons", 6) - (b["price"] - 1000.0)) * b["qty"]) for b in st.session_state.bonds)
 weighted_ytm = sum(b["ytm"] * (b["price"] * b["qty"]) for b in st.session_state.bonds) / total_inv if total_inv > 0 else 0
 
-# Виведення метрик у шапці (теперь чіткі білі цифри)
+# Виведення метрик у шапці (чіткі білі цифри)
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("Загальні інвестиції", f"{total_inv:,.2f} ₴")
 m2.metric("Загальний чистий дохід", f"+{total_net_profit:,.2f} ₴")
@@ -171,18 +152,20 @@ with tab1:
                 st.success("Облігацію додано!")
                 st.rerun()
 
-    # Відображення кожної позиції повністю всередині єдиної рамки ovdp-card
+    # Відображення карток з рамкою, колір якої відповідає кольору акції в графіках
     for idx, b in enumerate(st.session_state.bonds):
         color = CHART_COLORS[idx % len(CHART_COLORS)]
 
-        # Початок єдиної картки-рамки
-        st.markdown('<div class="ovdp-card">', unsafe_allow_html=True)
+        # Відкриваємо рамку з унікальним кольором для кожної акції
+        st.markdown(f'''
+            <div style="border: 2px solid {color}; border-radius: 15px; padding: 18px; margin-bottom: 20px; background-color: rgba(255, 255, 255, 0.02);">
+        ''', unsafe_allow_html=True)
         
         st.markdown(f"#### <span style='color: {color};'>●</span> {b['isin']} — {b.get('name', 'ОВДП')}", unsafe_allow_html=True)
         st.write(f"**Ціна:** {b['price']} ₴ | **Купон:** {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | **YTM:** {b['ytm']}% | **Погашення:** {b['maturity']}")
         st.write(f"**Кількість:** `{b['qty']} шт.` | **Інвестиції:** `{b['price'] * b['qty']:,.2f} ₴`")
 
-        # Горизонтальні компактні кнопки в один рядок всередині рамки
+        # Кнопки залишаються у звичному вигляді, але розміщені акуратно в рядок
         c_minus, c_plus, c_del = st.columns(3)
         
         with c_minus:
@@ -202,7 +185,7 @@ with tab1:
                 save_data(st.session_state.bonds)
                 st.rerun()
 
-        # Кінець рамки картки
+        # Закриваємо рамку картки
         st.markdown('</div>', unsafe_allow_html=True)
 
 # --- ВКЛАДКА 2: ГРАФІКИ ТА РЕІНВЕСТУВАННЯ ---
