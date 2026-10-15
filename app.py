@@ -9,24 +9,24 @@ st.set_page_config(page_title="ОВДП Ultimate Портфель", page_icon="�
 
 DATA_FILE = "ovdp_pro_data.json"
 
-# --- КАСТОМНІ CSS СТИЛІ (круглі рамки, компактні кнопки та теми) ---
+# --- КАСТОМНІ CSS СТИЛІ (круглі рамки карток та кольорові компактні кнопки) ---
 st.markdown("""
     <style>
-    /* Стиль для обведення кожної позиції у вигляді акуратної округлої рамки */
+    /* Акуратна рамка навколо кожної картки облігації */
     .ovdp-card {
         border: 2px solid #3498db;
         border-radius: 15px;
-        padding: 15px;
-        margin-bottom: 15px;
-        background-color: rgba(255, 255, 255, 0.03);
+        padding: 20px;
+        margin-bottom: 20px;
+        background-color: rgba(255, 255, 255, 0.02);
     }
     
-    /* Компактні та акуратні кнопки в один рядок */
-    div.stButton > button {
-        border-radius: 8px;
-        font-weight: bold;
-        padding: 4px 8px;
-        width: 100%;
+    /* Універсальний компактний стиль кнопок у колонках */
+    div[data-testid="column"] button {
+        border-radius: 8px !important;
+        font-weight: bold !important;
+        width: 100% !important;
+        padding: 6px 10px !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -165,13 +165,15 @@ with tab1:
     for idx, b in enumerate(st.session_state.bonds):
         color = CHART_COLORS[idx % len(CHART_COLORS)]
 
+        # Відкриваємо рамку картки
         st.markdown('<div class="ovdp-card">', unsafe_allow_html=True)
+        
         st.markdown(f"#### <span style='color: {color};'>●</span> {b['isin']} — {b.get('name', 'ОВДП')}", unsafe_allow_html=True)
         st.write(f"**Ціна:** {b['price']} ₴ | **Купон:** {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | **YTM:** {b['ytm']}% | **Погашення:** {b['maturity']}")
         st.write(f"**Кількість:** `{b['qty']} шт.` | **Інвестиції:** `{b['price'] * b['qty']:,.2f} ₴`")
 
         # Горизонтальний рядок керування кількістю та кнопками
-        c_minus, c_plus, c_del = st.columns([1, 1, 1])
+        c_minus, c_plus, c_del = st.columns(3)
         
         with c_minus:
             if st.button("➖ Менше", key=f"minus_{idx}"):
@@ -190,6 +192,7 @@ with tab1:
                 save_data(st.session_state.bonds)
                 st.rerun()
 
+        # Закриваємо рамку картки
         st.markdown('</div>', unsafe_allow_html=True)
 
 # --- ВКЛАДКА 2: ГРАФІКИ ТА РЕІНВЕСТУВАННЯ ---
@@ -269,78 +272,4 @@ with tab2:
         except ValueError:
             pass
 
-    if parsed_periods:
-        chain_x, chain_y = [], []
-        current_capital = 0.0
-
-        for i, period in enumerate(parsed_periods):
-            p_start, p_end, p_rate, p_init = period["start"], period["end"], period["rate"], period["initial"]
-            if p_init > 0 or i == 0:
-                current_capital += p_init
-
-            days_in_period = max(1, (p_end - p_start).days)
-            daily_r = p_rate / 365.0
-            sim_days = 0
-
-            while sim_days <= days_in_period:
-                day_date = p_start + timedelta(days=sim_days)
-                if day_date >= today:
-                    from_today = (day_date - today).days
-                    current_capital *= (1 + daily_r)
-                    chain_x.append(from_today / 365.0)
-                    chain_y.append(current_capital)
-                sim_days += max(1, days_in_period // 20)
-
-        if chain_x:
-            ax.plot(chain_x, chain_y, label="🌟 Персональний реінвест (ланцюжок)", color="#ff3838", linewidth=3.5, linestyle="--")
-
-    ax.set_title("Динаміка портфеля та реінвестування", color=text_color, fontsize=12, fontweight="bold")
-    ax.set_xlabel("Роки", color=text_color)
-    ax.set_ylabel("Сума (₴)", color=text_color)
-    ax.tick_params(colors=text_color)
-    for spine in ax.spines.values():
-        spine.set_color(text_color)
-    ax.legend(facecolor=fig_bg, edgecolor="none", labelcolor=text_color, fontsize=9)
-    ax.grid(True, linestyle=":", alpha=0.3, color=text_color)
-    fig.tight_layout()
-
-    st.pyplot(fig)
-
-# --- ВКЛАДКА 3: АНАЛІТИЧНИЙ ЗВІТ ---
-with tab3:
-    st.subheader("📋 Структурований звіт за датами погашення")
-
-    def parse_date(bond):
-        try:
-            return datetime.strptime(bond.get("maturity", "31.12.2099"), "%d.%m.%Y")
-        except ValueError:
-            return datetime(2099, 12, 31)
-
-    sorted_bonds = sorted(st.session_state.bonds, key=parse_date)
-
-    report_md = f"""
-### 📊 Загальні підсумки портфеля:
-- **Загальна сума інвестицій:** {total_inv:,.2f} ₴
-- **Загальний чистий прибуток:** +{total_net_profit:,.2f} ₴
-- **Сума до виплати при закритті:** {total_payout:,.2f} ₴
-- **Середньозважений YTM:** {weighted_ytm:.2f}%
-
----
-### 📅 Закриття позицій (від найближчої до найдальшої):
-"""
-    for b in sorted_bonds:
-        pos_inv = b["price"] * b["qty"]
-        t_coupons = b.get("total_coupons", 6)
-        total_coup = b["coupon"] * t_coupons * b["qty"]
-        price_diff_loss = (b["price"] - 1000.0) * b["qty"]
-        net_profit = total_coup - price_diff_loss
-        nominal_payout_pos = 1000.0 * b["qty"] + net_profit
-
-        report_md += f"""
-- **{b['isin']} — {b.get('name', 'Без назви')}**
-  * 📅 Дата закриття: **{b.get('maturity', 'Не вказано')}**
-  * 📦 Кількість: `{b['qty']} шт.` | Інвестиції: `{pos_inv:,.2f} ₴`
-  * 🎟️ Сума купонів: `+{total_coup:,.2f} ₴` | Збиток на номіналі: `-{price_diff_loss:,.2f} ₴`
-  * 💵 Чистий дохід: `+{net_profit:,.2f} ₴` | 🏁 До виплати: `{nominal_payout_pos:,.2f} ₴`
-"""
-    st.markdown(report_md)
+    if
