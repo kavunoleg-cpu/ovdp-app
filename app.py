@@ -9,10 +9,10 @@ st.set_page_config(page_title="ОВДП Ultimate Портфель", page_icon="�
 
 DATA_FILE = "ovdp_pro_data.json"
 
-# --- КАСТОМНІ CSS СТИЛІ (Яскраві білі цифри для шапки) ---
+# --- КАСТОМНІ CSS СТИЛІ ДЛЯ КНОПОК ТА ШАПКИ ---
 st.markdown("""
     <style>
-    /* Робимо всі цифри та тексти в метриках яскраво-білими і чіткими */
+    /* Яскраво-білі чіткі цифри для шапки метрик */
     [data-testid="stMetricValue"], [data-testid="stMetricLabel"], [data-testid="stMetricDelta"] {
         color: #ffffff !important;
     }
@@ -20,11 +20,14 @@ st.markdown("""
         color: #ffffff !important;
     }
 
-    /* Стилізація кнопок */
+    /* Загальні стилі для наших кнопок всередині карток */
     div.stButton > button {
         border-radius: 8px !important;
         font-weight: bold !important;
         width: 100% !important;
+        color: white !important;
+        border: none !important;
+        padding: 6px 10px !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -141,39 +144,41 @@ with tab1:
                 st.success("Облігацію додано!")
                 st.rerun()
 
-    # Відображення карток з унікальними кольоровими рамками
+    # Рендеринг кожної позиції в єдиному HTML-блоці з унікальною рамкою
     for idx, b in enumerate(st.session_state.bonds):
         color = CHART_COLORS[idx % len(CHART_COLORS)]
 
-        # Використовуємо кастомний HTML-блок, який повністю гарантує обведення всього вмісту
+        # Відкриваємо кольорову рамку картки
         st.markdown(f"""
-            <div style="border: 2px solid {color}; border-radius: 12px; padding: 16px; margin-bottom: 16px; background-color: rgba(255, 255, 255, 0.02);">
-                <h4 style="margin-top: 0; color: {color};">● {b['isin']} — {b.get('name', 'ОВДП')}</h4>
-                <p style="margin-bottom: 4px;"><b>Ціна:</b> {b['price']} ₴ | <b>Купон:</b> {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | <b>YTM:</b> {b['ytm']}% | <b>Погашення:</b> {b['maturity']}</p>
-                <p style="margin-bottom: 12px;"><b>Кількість:</b> {b['qty']} шт. | <b>Інвестиції:</b> {b['price'] * b['qty']:,.2f} ₴</p>
-            </div>
+            <div style="border: 2px solid {color}; border-radius: 14px; padding: 18px; margin-bottom: 8px; background-color: rgba(255, 255, 255, 0.02);">
+                <h4 style="margin-top: 0; margin-bottom: 10px; color: {color};">● {b['isin']} — {b.get('name', 'ОВДП')}</h4>
+                <p style="margin-bottom: 6px;"><b>Ціна:</b> {b['price']} ₴ | <b>Купон:</b> {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | <b>YTM:</b> {b['ytm']}% | <b>Погашення:</b> {b['maturity']}</p>
+                <p style="margin-bottom: 15px;"><b>Кількість:</b> {b['qty']} шт. | <b>Інвестиції:</b> {b['price'] * b['qty']:,.2f} ₴</p>
         """, unsafe_allow_html=True)
 
-        # Кнопки керування кількістю та видаленням
-        c_minus, c_plus, c_del = st.columns(3)
-        with c_minus:
-            if st.button("➖ Менше", key=f"minus_{idx}"):
+        # Кнопки керування власного дизайну в один рядок всередині рамки
+        col_m, col_p, col_del = st.columns([1, 1, 1])
+        
+        with col_m:
+            if st.button("➖ Менше", key=f"minus_{idx}'):
                 if b['qty'] > 0:
                     b['qty'] -= 1
                     save_data(st.session_state.bonds)
                     st.rerun()
-        with c_plus:
+        with col_p:
             if st.button("➕ Більше", key=f"plus_{idx}"):
                 b['qty'] += 1
                 save_data(st.session_state.bonds)
                 st.rerun()
-        with c_del:
+        with col_del:
             if st.button("❌ Видалити", key=f"del_{idx}"):
                 del st.session_state.bonds[idx]
                 save_data(st.session_state.bonds)
                 st.rerun()
-        
-        st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
+
+        # Закриваємо рамку картки
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
 
 # --- ВКЛАДКА 2: ГРАФІКИ ТА РЕІНВЕСТУВАННЯ ---
 with tab2:
@@ -304,7 +309,7 @@ with tab3:
 ### 📊 Загальні підсумки портфеля:
 - **Загальна сума інвестицій:** {total_inv:,.2f} ₴
 - **Загальний чистий прибуток:** +{total_net_profit:,.2f} ₴
-- **Сума до виплати при закритті:** {total_payout:,.2f} ₴
+- **Сума до виплати загалом:** {total_payout:,.2f} ₴
 - **Середньозважений YTM:** {weighted_ytm:.2f}%
 
 ---
