@@ -9,7 +9,7 @@ st.set_page_config(page_title="ОВДП Ultimate Портфель", page_icon="�
 
 DATA_FILE = "ovdp_pro_data.json"
 
-# --- КАСТОМНІ CSS СТИЛІ ---
+# --- КАСТОМНІ CSS СТИЛІ (Кольорові кнопки, білі цифри та рамки) ---
 st.markdown("""
     <style>
     /* Яскраво-білі чіткі цифри для шапки метрик */
@@ -20,11 +20,25 @@ st.markdown("""
         color: #ffffff !important;
     }
 
-    /* Стилі для кольорових кнопок */
+    /* Стилі для компактних кольорових кнопок */
     div.stButton > button {
         border-radius: 8px !important;
         font-weight: bold !important;
         width: 100% !important;
+        color: white !important;
+        border: none !important;
+    }
+
+    /* Робимо кнопки «Менше» та «Більше» синіми */
+    div[data-testid="column"]:nth-of-type(1) button {
+        background-color: #2980b9 !important;
+    }
+    div[data-testid="column"]:nth-of-type(2) button {
+        background-color: #27ae60 !important;
+    }
+    /* Робимо кнопку «Видалити» червоною */
+    div[data-testid="column"]:nth-of-type(3) button {
+        background-color: #c0392b !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -159,40 +173,42 @@ with tab1:
                 st.success("Облігацію додано!")
                 st.rerun()
 
-    # Відображення карток з рамкою, колір якої збігається з кольором акції на графіку
+    # Відображення карток з кольоровими рамками через контейнери
     for idx, b in enumerate(st.session_state.bonds):
         color = CHART_COLORS[idx % len(CHART_COLORS)]
 
-        # Відкриваємо єдину кольорову рамку картки
-        st.markdown(f'''
-            <div style="border: 2px solid {color}; border-radius: 15px; padding: 20px; margin-bottom: 20px; background-color: rgba(255, 255, 255, 0.02);">
-                <h4 style="margin-top: 0; color: {color};">● {b['isin']} — {b.get('name', 'ОВДП')}</h4>
-                <p><b>Ціна:</b> {b['price']} ₴ | <b>Купон:</b> {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | <b>YTM:</b> {b['ytm']}% | <b>Погашення:</b> {b['maturity']}</p>
-                <p><b>Кількість:</b> {b['qty']} шт. | <b>Інвестиції:</b> {b['price'] * b['qty']:,.2f} ₴</p>
-        ''', unsafe_allow_html=True)
+        with st.container(border=True):
+            st.markdown(f"""
+                <style>
+                div[data-testid="stVerticalBlock"] > div:has(div.element-container) {{
+                    border-color: {color} !important;
+                }}
+                </style>
+            """, unsafe_allow_html=True)
 
-        # Кнопки керування всередині рамки
-        c_minus, c_plus, c_del = st.columns(3)
-        
-        with c_minus:
-            if st.button("➖ Менше", key=f"minus_{idx}"):
-                if b['qty'] > 0:
-                    b['qty'] -= 1
+            st.markdown(f"#### <span style='color: {color};'>●</span> {b['isin']} — {b.get('name', 'ОВДП')}", unsafe_allow_html=True)
+            st.write(f"**Ціна:** {b['price']} ₴ | **Купон:** {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | **YTM:** {b['ytm']}% | **Погашення:** {b['maturity']}")
+            st.write(f"**Кількість:** `{b['qty']} шт.` | **Інвестиції:** `{b['price'] * b['qty']:,.2f} ₴`")
+
+            # Кнопки керування всередині контейнера
+            c_minus, c_plus, c_del = st.columns(3)
+            
+            with c_minus:
+                if st.button("➖ Менше", key=f"minus_{idx}"):
+                    if b['qty'] > 0:
+                        b['qty'] -= 1
+                        save_data(st.session_state.bonds)
+                        st.rerun()
+            with c_plus:
+                if st.button("➕ Більше", key=f"plus_{idx}"):
+                    b['qty'] += 1
                     save_data(st.session_state.bonds)
                     st.rerun()
-        with c_plus:
-            if st.button("➕ Більше", key=f"plus_{idx}"):
-                b['qty'] += 1
-                save_data(st.session_state.bonds)
-                st.rerun()
-        with c_del:
-            if st.button("❌ Видалити", key=f"del_{idx}"):
-                del st.session_state.bonds[idx]
-                save_data(st.session_state.bonds)
-                st.rerun()
-
-        # Закриваємо єдину рамку картки
-        st.markdown('</div>', unsafe_allow_html=True)
+            with c_del:
+                if st.button("❌ Видалити", key=f"del_{idx}"):
+                    del st.session_state.bonds[idx]
+                    save_data(st.session_state.bonds)
+                    st.rerun()
 
 # --- ВКЛАДКА 2: ГРАФІКИ ТА РЕІНВЕСТУВАННЯ ---
 with tab2:
