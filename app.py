@@ -9,15 +9,22 @@ st.set_page_config(page_title="ОВДП Ultimate Портфель", page_icon="�
 
 DATA_FILE = "ovdp_pro_data.json"
 
-# --- КАСТОМНІ CSS СТИЛІ (Яскраві білі цифри для шапки) ---
+# --- КАСТОМНІ CSS СТИЛІ ---
 st.markdown("""
     <style>
-    /* Робимо всі цифри та тексти в метриках яскраво-білими і чіткими */
+    /* Яскраво-білі чіткі цифри для шапки метрик */
     [data-testid="stMetricValue"], [data-testid="stMetricLabel"], [data-testid="stMetricDelta"] {
         color: #ffffff !important;
     }
     div[data-testid="metric-container"] * {
         color: #ffffff !important;
+    }
+
+    /* Стилі для кольорових кнопок */
+    div.stButton > button {
+        border-radius: 8px !important;
+        font-weight: bold !important;
+        width: 100% !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -106,7 +113,7 @@ total_net_profit = sum((b["coupon"] * b.get("total_coupons", 6) - (b["price"] - 
 total_payout = sum((1000.0 * b["qty"]) + ((b["coupon"] * b.get("total_coupons", 6) - (b["price"] - 1000.0)) * b["qty"]) for b in st.session_state.bonds)
 weighted_ytm = sum(b["ytm"] * (b["price"] * b["qty"]) for b in st.session_state.bonds) / total_inv if total_inv > 0 else 0
 
-# Виведення метрик у шапці (чіткі білі цифри)
+# Виведення метрик у шапці
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("Загальні інвестиції", f"{total_inv:,.2f} ₴")
 m2.metric("Загальний чистий дохід", f"+{total_net_profit:,.2f} ₴")
@@ -152,20 +159,19 @@ with tab1:
                 st.success("Облігацію додано!")
                 st.rerun()
 
-    # Відображення карток з рамкою, колір якої відповідає кольору акції в графіках
+    # Відображення карток з рамкою, колір якої збігається з кольором акції на графіку
     for idx, b in enumerate(st.session_state.bonds):
         color = CHART_COLORS[idx % len(CHART_COLORS)]
 
-        # Відкриваємо рамку з унікальним кольором для кожної акції
+        # Відкриваємо єдину кольорову рамку картки
         st.markdown(f'''
-            <div style="border: 2px solid {color}; border-radius: 15px; padding: 18px; margin-bottom: 20px; background-color: rgba(255, 255, 255, 0.02);">
+            <div style="border: 2px solid {color}; border-radius: 15px; padding: 20px; margin-bottom: 20px; background-color: rgba(255, 255, 255, 0.02);">
+                <h4 style="margin-top: 0; color: {color};">● {b['isin']} — {b.get('name', 'ОВДП')}</h4>
+                <p><b>Ціна:</b> {b['price']} ₴ | <b>Купон:</b> {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | <b>YTM:</b> {b['ytm']}% | <b>Погашення:</b> {b['maturity']}</p>
+                <p><b>Кількість:</b> {b['qty']} шт. | <b>Інвестиції:</b> {b['price'] * b['qty']:,.2f} ₴</p>
         ''', unsafe_allow_html=True)
-        
-        st.markdown(f"#### <span style='color: {color};'>●</span> {b['isin']} — {b.get('name', 'ОВДП')}", unsafe_allow_html=True)
-        st.write(f"**Ціна:** {b['price']} ₴ | **Купон:** {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | **YTM:** {b['ytm']}% | **Погашення:** {b['maturity']}")
-        st.write(f"**Кількість:** `{b['qty']} шт.` | **Інвестиції:** `{b['price'] * b['qty']:,.2f} ₴`")
 
-        # Кнопки залишаються у звичному вигляді, але розміщені акуратно в рядок
+        # Кнопки керування всередині рамки
         c_minus, c_plus, c_del = st.columns(3)
         
         with c_minus:
@@ -185,7 +191,7 @@ with tab1:
                 save_data(st.session_state.bonds)
                 st.rerun()
 
-        # Закриваємо рамку картки
+        # Закриваємо єдину рамку картки
         st.markdown('</div>', unsafe_allow_html=True)
 
 # --- ВКЛАДКА 2: ГРАФІКИ ТА РЕІНВЕСТУВАННЯ ---
