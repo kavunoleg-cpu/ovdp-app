@@ -41,9 +41,31 @@ if 'bonds' not in st.session_state:
 st.sidebar.title("⚙️ Керування")
 theme = st.sidebar.selectbox("Оберіть тему оформлення:", ["Темна (Класична)", "Світла", "Смарагдова"])
 
-# Кольорові стилі для графіків залежно від теми
-fig_bg = "#1e1e1e" if theme != "Світла" else "#ffffff"
-text_color = "white" if theme != "Світла" else "#2c3e50"
+# Налаштування кольорів та фону залежно від теми
+if theme == "Світла":
+    fig_bg = "#ffffff"
+    text_color = "#2c3e50"
+    st.markdown("""
+        <style>
+        .stApp { background-color: #f8f9fa; color: #2c3e50; }
+        </style>
+    """, unsafe_allow_html=True)
+elif theme == "Смарагдова":
+    fig_bg = "#0f2518"
+    text_color = "#e8f8f0"
+    st.markdown("""
+        <style>
+        .stApp { background-color: #0b1f14; color: #e8f8f0; }
+        </style>
+    """, unsafe_allow_html=True)
+else: # Темна (Класична)
+    fig_bg = "#1e1e1e"
+    text_color = "white"
+    st.markdown("""
+        <style>
+        .stApp { background-color: #121212; color: white; }
+        </style>
+    """, unsafe_allow_html=True)
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("📂 Резервна копія")
