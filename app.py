@@ -9,10 +9,10 @@ st.set_page_config(page_title="ОВДП Ultimate Портфель", page_icon="�
 
 DATA_FILE = "ovdp_pro_data.json"
 
-# --- КАСТОМНІ CSS СТИЛІ ---
+# --- КАСТОМНІ CSS СТИЛІ (Яскраві білі цифри для шапки) ---
 st.markdown("""
     <style>
-    /* Яскраво-білі чіткі цифри для шапки метрик */
+    /* Робимо всі цифри та тексти в метриках яскраво-білими і чіткими */
     [data-testid="stMetricValue"], [data-testid="stMetricLabel"], [data-testid="stMetricDelta"] {
         color: #ffffff !important;
     }
@@ -20,7 +20,7 @@ st.markdown("""
         color: #ffffff !important;
     }
 
-    /* Компактні кнопки */
+    /* Стилізація кнопок */
     div.stButton > button {
         border-radius: 8px !important;
         font-weight: bold !important;
@@ -57,40 +57,26 @@ def save_data(bonds):
 if 'bonds' not in st.session_state:
     st.session_state.bonds = load_data()
 
-# --- БОКОВА ПАНЕЛЬ (НАЛАШТУВАННЯ ТА ТЕМИ) ---
+# --- БОКОВА ПАНЕЛЬ ---
 st.sidebar.title("⚙️ Керування")
 theme = st.sidebar.selectbox("Оберіть тему оформлення:", ["Темна (Класична)", "Світла", "Смарагдова"])
 
-# Налаштування кольорів та фону залежно від теми
 if theme == "Світла":
     fig_bg = "#ffffff"
     text_color = "#2c3e50"
-    st.markdown("""
-        <style>
-        .stApp { background-color: #f8f9fa; color: #2c3e50; }
-        </style>
-    """, unsafe_allow_html=True)
+    st.markdown("""<style>.stApp { background-color: #f8f9fa; color: #2c3e50; }</style>""", unsafe_allow_html=True)
 elif theme == "Смарагдова":
     fig_bg = "#0f2518"
     text_color = "#e8f8f0"
-    st.markdown("""
-        <style>
-        .stApp { background-color: #0b1f14; color: #e8f8f0; }
-        </style>
-    """, unsafe_allow_html=True)
-else: # Темна (Класична)
+    st.markdown("""<style>.stApp { background-color: #0b1f14; color: #e8f8f0; }</style>""", unsafe_allow_html=True)
+else:
     fig_bg = "#1e1e1e"
     text_color = "white"
-    st.markdown("""
-        <style>
-        .stApp { background-color: #121212; color: white; }
-        </style>
-    """, unsafe_allow_html=True)
+    st.markdown("""<style>.stApp { background-color: #121212; color: white; }</style>""", unsafe_allow_html=True)
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("📂 Резервна копія")
 
-# Кнопки Експорту / Імпорту
 json_str = json.dumps(st.session_state.bonds, ensure_ascii=False, indent=4)
 st.sidebar.download_button(label="💾 Експорт JSON", data=json_str, file_name="ovdp_portfolio.json", mime="application/json")
 
@@ -107,13 +93,11 @@ if uploaded_file is not None:
 # --- ГОЛОВНИЙ ЕКРАН ---
 st.title("📊 Облік портфеля ОВДП та Ланцюжок Реінвестування")
 
-# Розрахунок загальних показників
 total_inv = sum(b["price"] * b["qty"] for b in st.session_state.bonds)
 total_net_profit = sum((b["coupon"] * b.get("total_coupons", 6) - (b["price"] - 1000.0)) * b["qty"] for b in st.session_state.bonds)
 total_payout = sum((1000.0 * b["qty"]) + ((b["coupon"] * b.get("total_coupons", 6) - (b["price"] - 1000.0)) * b["qty"]) for b in st.session_state.bonds)
 weighted_ytm = sum(b["ytm"] * (b["price"] * b["qty"]) for b in st.session_state.bonds) / total_inv if total_inv > 0 else 0
 
-# Виведення метрик у шапці
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("Загальні інвестиції", f"{total_inv:,.2f} ₴")
 m2.metric("Загальний чистий дохід", f"+{total_net_profit:,.2f} ₴")
@@ -122,14 +106,12 @@ m4.metric("Середній YTM", f"{weighted_ytm:.2f}%")
 
 st.markdown("---")
 
-# Створення вкладок
 tab1, tab2, tab3 = st.tabs(["📊 Портфель та Облігації", "📈 Динамічні графіки й Реінвест", "📋 Аналітичний звіт"])
 
 # --- ВКЛАДКА 1: ПОРТФЕЛЬ ---
 with tab1:
     st.subheader("Список позицій у портфелі")
 
-    # Кнопка додавання нової облігації
     with st.expander("➕ Додати нову облігацію"):
         with st.form("add_bond_form"):
             col_a, col_b = st.columns(2)
@@ -159,21 +141,21 @@ with tab1:
                 st.success("Облігацію додано!")
                 st.rerun()
 
-    # Відображення карток з чіткими кольоровими рамками акцій
+    # Відображення карток з унікальними кольоровими рамками
     for idx, b in enumerate(st.session_state.bonds):
         color = CHART_COLORS[idx % len(CHART_COLORS)]
 
-        # Відкриваємо кольорову рамку
-        st.markdown(f'''
-            <div style="border: 2px solid {color}; border-radius: 15px; padding: 18px; margin-bottom: 20px; background-color: rgba(255, 255, 255, 0.02);">
+        # Використовуємо кастомний HTML-блок, який повністю гарантує обведення всього вмісту
+        st.markdown(f"""
+            <div style="border: 2px solid {color}; border-radius: 12px; padding: 16px; margin-bottom: 16px; background-color: rgba(255, 255, 255, 0.02);">
                 <h4 style="margin-top: 0; color: {color};">● {b['isin']} — {b.get('name', 'ОВДП')}</h4>
-                <p style="margin-bottom: 5px;"><b>Ціна:</b> {b['price']} ₴ | <b>Купон:</b> {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | <b>YTM:</b> {b['ytm']}% | <b>Погашення:</b> {b['maturity']}</p>
-                <p style="margin-bottom: 15px;"><b>Кількість:</b> {b['qty']} шт. | <b>Інвестиції:</b> {b['price'] * b['qty']:,.2f} ₴</p>
-        ''', unsafe_allow_html=True)
+                <p style="margin-bottom: 4px;"><b>Ціна:</b> {b['price']} ₴ | <b>Купон:</b> {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | <b>YTM:</b> {b['ytm']}% | <b>Погашення:</b> {b['maturity']}</p>
+                <p style="margin-bottom: 12px;"><b>Кількість:</b> {b['qty']} шт. | <b>Інвестиції:</b> {b['price'] * b['qty']:,.2f} ₴</p>
+            </div>
+        """, unsafe_allow_html=True)
 
-        # Кнопки керування
+        # Кнопки керування кількістю та видаленням
         c_minus, c_plus, c_del = st.columns(3)
-        
         with c_minus:
             if st.button("➖ Менше", key=f"minus_{idx}"):
                 if b['qty'] > 0:
@@ -190,9 +172,8 @@ with tab1:
                 del st.session_state.bonds[idx]
                 save_data(st.session_state.bonds)
                 st.rerun()
-
-        # Закриваємо рамку
-        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
 
 # --- ВКЛАДКА 2: ГРАФІКИ ТА РЕІНВЕСТУВАННЯ ---
 with tab2:
@@ -225,7 +206,6 @@ with tab2:
         st.session_state.reinvest_periods.append({"start": last_end, "end": "20.02.2029", "rate": 12.0, "initial": 0.0})
         st.rerun()
 
-    # Побудова графіка за допомогою Matplotlib
     fig, ax = plt.subplots(figsize=(10, 5), dpi=100)
     fig.patch.set_facecolor(fig_bg)
     ax.set_facecolor(fig_bg)
