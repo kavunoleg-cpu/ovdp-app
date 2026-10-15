@@ -9,7 +9,7 @@ st.set_page_config(page_title="ОВДП Ultimate Портфель", page_icon="�
 
 DATA_FILE = "ovdp_pro_data.json"
 
-# --- КАСТОМНІ CSS СТИЛІ ДЛЯ КНОПОК ТА РАМОК ---
+# --- КАСТОМНІ CSS СТИЛІ ---
 st.markdown("""
     <style>
     /* Яскраво-білі чіткі цифри для шапки метрик */
@@ -18,20 +18,6 @@ st.markdown("""
     }
     div[data-testid="metric-container"] * {
         color: #ffffff !important;
-    }
-
-    /* Стилі для кнопок всередині карток — робимо їх синіми з білими значками */
-    div.stButton > button {
-        border-radius: 8px !important;
-        font-weight: bold !important;
-        width: 100% !important;
-        background-color: #3498db !important;
-        color: white !important;
-        border: none !important;
-        padding: 6px 10px !important;
-    }
-    div.stButton > button:hover {
-        background-color: #2980b9 !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -148,39 +134,39 @@ with tab1:
                 st.success("Облігацію додано!")
                 st.rerun()
 
-    # Точна структура карток з єдиною рамкою, що повністю охоплює і текст, і кнопки
+    # Повністю єдині картки через чистий HTML (рамка містить у собі абсолютно все!)
     for idx, b in enumerate(st.session_state.bonds):
         color = CHART_COLORS[idx % len(CHART_COLORS)]
 
-        # Відкриваємо рамку єдиного блоку
-        st.markdown(f'''
+        # Розрахунок інвестицій для відображення
+        pos_inv = b['price'] * b['qty']
+
+        st.markdown(f"""
             <div style="border: 2px solid {color}; border-radius: 16px; padding: 20px; margin-bottom: 25px; background-color: rgba(255, 255, 255, 0.015);">
                 <h4 style="margin-top: 0; margin-bottom: 10px; color: {color};">● {b['isin']} — {b.get('name', 'ОВДП')}</h4>
                 <p style="margin-bottom: 6px;"><b>Ціна:</b> {b['price']} ₴ | <b>Купон:</b> {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | <b>YTM:</b> {b['ytm']}% | <b>Погашення:</b> {b['maturity']}</p>
-                <p style="margin-bottom: 20px;"><b>Кількість:</b> {b['qty']} шт. | <b>Інвестиції:</b> {b['price'] * b['qty']:,.2f} ₴</p>
-        ''', unsafe_allow_html=True)
+                <p style="margin-bottom: 15px;"><b>Кількість:</b> {b['qty']} шт. | <b>Інвестиції:</b> {pos_inv:,.2f} ₴</p>
+            </div>
+        """, unsafe_allow_html=True)
 
-        # Кнопки керування всередині цього ж блоку
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            if st.button("➖ Менше", key=f"minus_{idx}"):
+        # Дії керування всередині потоку під цим блоком або компактно
+        col_m, col_p, col_del = st.columns(3)
+        with col_m:
+            if st.button("➖ Менше", key=f"minus_{idx}", use_container_width=True):
                 if b['qty'] > 0:
                     b['qty'] -= 1
                     save_data(st.session_state.bonds)
                     st.rerun()
-        with c2:
-            if st.button("➕ Більше", key=f"plus_{idx}"):
+        with col_p:
+            if st.button("➕ Більше", key=f"plus_{idx}", use_container_width=True):
                 b['qty'] += 1
                 save_data(st.session_state.bonds)
                 st.rerun()
-        with c3:
-            if st.button("❌ Видалити", key=f"del_{idx}"):
+        with col_del:
+            if st.button("❌ Видалити", key=f"del_{idx}", use_container_width=True):
                 del st.session_state.bonds[idx]
                 save_data(st.session_state.bonds)
                 st.rerun()
-
-        # Закриваємо рамку єдиного блоку
-        st.markdown('</div>', unsafe_allow_html=True)
 
 # --- ВКЛАДКА 2: ГРАФІКИ ТА РЕІНВЕСТУВАННЯ ---
 with tab2:
