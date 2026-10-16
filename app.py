@@ -17,8 +17,7 @@ st.markdown("""
         color: #ffffff !important;
     }
     
-    /* Компактні кольорові кнопки всередині блоків */
-    div[data-testid="column"] button {
+    div.stButton > button {
         border-radius: 6px !important;
         font-weight: bold !important;
         width: 100% !important;
@@ -27,13 +26,13 @@ st.markdown("""
         padding: 4px 8px !important;
         min-height: 32px !important;
     }
-    div[data-testid="column"]:nth-of-type(1) button {
+    div.stButton:nth-of-type(1) > button {
         background-color: #2980b9 !important;
     }
-    div[data-testid="column"]:nth-of-type(2) button {
+    div.stButton:nth-of-type(2) > button {
         background-color: #27ae60 !important;
     }
-    div[data-testid="column"]:nth-of-type(3) button {
+    div.stButton:nth-of-type(3) > button {
         background-color: #c0392b !important;
     }
     </style>
@@ -101,5 +100,4 @@ st.title("📊 Облік портфеля ОВДП та Ланцюжок Реі
 
 total_inv = sum(b["price"] * b["qty"] for b in st.session_state.bonds)
 total_net_profit = sum((b["coupon"] * b.get("total_coupons", 6) - (b["price"] - 1000.0)) * b["qty"] for b in st.session_state.bonds)
-total_payout = sum((1000.0 * b["qty"]) + ((b["coupon"] * b.get("total_coupons", 6) - (b["price"] - 1000.0)) * b["qty"]) for b in st.session_state.bonds)
-weighted_ytm = sum(b["ytm"] * (b["price"] * b["qty"]) for b in st.session_state.bonds) / total_inv if total_inv
+total_payout = sum((1000.0 * b["qty"]) + ((b["coupon"] * b.get("total
