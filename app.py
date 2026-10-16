@@ -17,7 +17,7 @@ st.markdown("""
         color: #ffffff !important;
     }
     
-    div.stButton > button {
+    div[data-testid="column"] button {
         border-radius: 6px !important;
         font-weight: bold !important;
         width: 100% !important;
@@ -26,13 +26,13 @@ st.markdown("""
         padding: 4px 8px !important;
         min-height: 32px !important;
     }
-    div.stButton:nth-of-type(1) > button {
+    div[data-testid="column"]:nth-of-type(1) button {
         background-color: #2980b9 !important;
     }
-    div.stButton:nth-of-type(2) > button {
+    div[data-testid="column"]:nth-of-type(2) button {
         background-color: #27ae60 !important;
     }
-    div.stButton:nth-of-type(3) > button {
+    div[data-testid="column"]:nth-of-type(3) button {
         background-color: #c0392b !important;
     }
     </style>
@@ -100,4 +100,94 @@ st.title("📊 Облік портфеля ОВДП та Ланцюжок Реі
 
 total_inv = sum(b["price"] * b["qty"] for b in st.session_state.bonds)
 total_net_profit = sum((b["coupon"] * b.get("total_coupons", 6) - (b["price"] - 1000.0)) * b["qty"] for b in st.session_state.bonds)
-total_payout = sum((1000.0 * b["qty"]) + ((b["coupon"] * b.get("total
+total_payout = sum((1000.0 * b["qty"]) + ((b["coupon"] * b.get("total_coupons", 6) - (b["price"] - 1000.0)) * b["qty"]) for b in st.session_state.bonds)
+weighted_ytm = (sum(b["ytm"] * (b["price"] * b["qty"]) for b in st.session_state.bonds) / total_inv) if total_inv > 0 else 0.0
+
+m1, m2, m3, m4 = st.columns(4)
+m1.metric("Загальні інвестиції", f"{total_inv:,.2f} ₴")
+m2.metric("Загальний чистий дохід", f"+{total_net_profit:,.2f} ₴")
+m3.metric("До виплати загалом", f"{total_payout:,.2f} ₴")
+m4.metric("Середній YTM", f"{weighted_ytm:.2f}%")
+
+st.markdown("---")
+
+tab1, tab2, tab3 = st.tabs(["📊 Портфель та Облігації", "📈 Динамічні графіки й Реінвест", "📋 Аналітичний звіт"])
+
+with tab1:
+    st.subheader("Список позицій у портфелі")
+
+    with st.expander("➕ Додати нову облігацію"):
+        with st.form("add_bond_form"):
+            col_a, col_b = st.columns(2)
+            new_isin = col_a.text_input("ISIN код", "UA4000...")
+            new_name = col_b.text_input("Назва", "ОВДП")
+
+            col_c, col_d = st.columns(2)
+            new_price = col_c.number_input("Ціна купівлі (₴)", value=1000.0)
+            new_coupon = col_d.number_input("Сума 1 купона (₴)", value=40.0)
+
+            col_e, col_f = st.columns(2)
+            new_tot_coup = col_e.number_input("Кількість виплат купонів", value=6, step=1)
+            new_ytm = col_f.number_input("YTM (%)", value=16.0)
+
+            col_g, col_h = st.columns(2)
+            new_mat = col_g.text_input("Дата погашення (ДД.ММ.РРРР)", "20.02.2028")
+            new_qty = col_h.number_input("Кількість шт.", value=1, step=1)
+
+            submit_add = st.form_submit_button("Зберегти облігацію")
+            if submit_add:
+                st.session_state.bonds.append({
+                    "isin": new_isin, "name": new_name, "price": new_price,
+                    "coupon": new_coupon, "total_coupons": int(new_tot_coup),
+                    "ytm": new_ytm, "maturity": new_mat, "qty": int(new_qty)
+                })
+                save_data(st.session_state.bonds)
+                st.success("Облігацію додано!")
+                st.rerun()
+
+    for idx, b in enumerate(st.session_state.bonds):
+        color = CHART_COLORS[idx % len(CHART_COLORS)]
+        pos_inv = b['price'] * b['qty']
+
+        card_html = f"""
+        <div style="border: 2px solid {color}; border-radius: 14px; padding: 16px; margin-top: 15px; background-color: rgba(255, 255, 255, 0.015);">
+            <h4 style="margin-top: 0; margin-bottom: 8px; color: {color};">● {b['isin']} — {b.get('name', 'ОВДП')}</h4>
+            <p style="margin-bottom: 4px;"><b>Ціна:</b> {b['price']} ₴ | <b>Купон:</b> {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | <b>YTM:</b> {b['ytm']}% | <b>Погашення:</b> {b['maturity']}</p>
+            <p style="margin-bottom: 10px;"><b>Кількість:</b> {b['qty']} шт. | <b>Інвестиції:</b> {pos_inv:,.2f} ₴</p>
+        </div>
+        """
+        st.markdown(card_html, unsafe_allow_html=True)
+
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            if st.button("➖ Менше", key=f"minus_{idx}", use_container_width=True):
+                if b['qty'] > 0:
+                    b['qty'] -= 1
+                    save_data(st.session_state.bonds)
+                    st.rerun()
+        with c2:
+            if st.button("➕ Більше", key=f"plus_{idx}", use_container_width=True):
+                b['qty'] += 1
+                save_data(st.session_state.bonds)
+                st.rerun()
+        with c3:
+            if st.button("❌ Видалити", key=f"del_{idx}", use_container_width=True):
+                del st.session_state.bonds[idx]
+                save_data(st.session_state.bonds)
+                st.rerun()
+
+        st.markdown("<div style='margin-bottom: 25px;'></div>", unsafe_allow_html=True)
+
+with tab2:
+    st.subheader("📈 Динамічні графіки росту та ланцюжок реінвестування")
+    monthly_contrib = st.number_input("Щомісячне додаткове поповнення портфеля (₴):", value=15000.0)
+
+    st.markdown("### 🌟 Ланцюжок реінвестування персонального капіталу")
+    if 'reinvest_periods' not in st.session_state:
+        st.session_state.reinvest_periods = [
+            {"start": "16.10.2026", "end": "16.10.2027", "rate": 16.5, "initial": 50000.0},
+            {"start": "16.10.2027", "end": "16.10.2028", "rate": 14.0, "initial": 0.0}
+        ]
+
+    for p_idx, period in enumerate(st.session_state.reinvest_periods):
+        col_
