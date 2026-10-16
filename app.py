@@ -20,7 +20,7 @@ st.markdown("""
         color: #ffffff !important;
     }
 
-    /* Стилі для кнопок всередині карток — робимо їх синіми з білими значками */
+    /* Стилі для кнопок всередині карток */
     div.stButton > button {
         border-radius: 8px !important;
         font-weight: bold !important;
@@ -122,4 +122,134 @@ with tab1:
     with st.expander("➕ Додати нову облігацію"):
         with st.form("add_bond_form"):
             col_a, col_b = st.columns(2)
-            new_isin = col_a.text_input("ISIN код", "UA4
+            new_isin = col_a.text_input("ISIN код", "UA4000...")
+            new_name = col_b.text_input("Назва", "ОВДП")
+
+            col_c, col_d = st.columns(2)
+            new_price = col_c.number_input("Ціна купівлі (₴)", value=1000.0)
+            new_coupon = col_d.number_input("Сума 1 купона (₴)", value=40.0)
+
+            col_e, col_f = st.columns(2)
+            new_tot_coup = col_e.number_input("Кількість виплат купонів", value=6, step=1)
+            new_ytm = col_f.number_input("YTM (%)", value=16.0)
+
+            col_g, col_h = st.columns(2)
+            new_mat = col_g.text_input("Дата погашення (ДД.ММ.РРРР)", "20.02.2028")
+            new_qty = col_h.number_input("Кількість шт.", value=1, step=1)
+
+            submit_add = st.form_submit_button("Зберегти облігацію")
+            if submit_add:
+                st.session_state.bonds.append({
+                    "isin": new_isin, "name": new_name, "price": new_price,
+                    "coupon": new_coupon, "total_coupons": int(new_tot_coup),
+                    "ytm": new_ytm, "maturity": new_mat, "qty": int(new_qty)
+                })
+                save_data(st.session_state.bonds)
+                st.success("Облігацію додано!")
+                st.rerun()
+
+    # Використовуємо вбудований у Streamlit контейнер із рамкою (`border=True`),
+    # щоб і інформація, і кнопки керування знаходилися всередині єдиної рамки.
+    for idx, b in enumerate(st.session_state.bonds):
+        color = CHART_COLORS[idx % len(CHART_COLORS)]
+        pos_inv = b['price'] * b['qty']
+
+        with st.container(border=True):
+            st.markdown(
+                f"<h4 style='margin-top: 0; margin-bottom: 8px; color: {color};'>"
+                f"● {b['isin']} — {b.get('name', 'ОВДП')}</h4>",
+                unsafe_allow_html=True
+            )
+            st.markdown(
+                f"<p style='margin-bottom: 6px;'><b>Ціна:</b> {b['price']} ₴ | "
+                f"<b>Купон:</b> {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | "
+                f"<b>YTM:</b> {b['ytm']}% | <b>Погашення:</b> {b['maturity']}</p>",
+                unsafe_allow_html=True
+            )
+            st.markdown(
+                f"<p style='margin-bottom: 15px;'><b>Кількість:</b> {b['qty']} шт. | "
+                f"<b>Інвестиції:</b> {pos_inv:,.2f} ₴</p>",
+                unsafe_allow_html=True
+            )
+
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                if st.button("➖ Менше", key=f"minus_{idx}", use_container_width=True):
+                    if b['qty'] > 0:
+                        b['qty'] -= 1
+                        save_data(st.session_state.bonds)
+                        st.rerun()
+            with c2:
+                if st.button("➕ Більше", key=f"plus_{idx}", use_container_width=True):
+                    b['qty'] += 1
+                    save_data(st.session_state.bonds)
+                    st.rerun()
+            with c3:
+                if st.button("❌ Видалити", key=f"del_{idx}", use_container_width=True):
+                    del st.session_state.bonds[idx]
+                    save_data(st.session_state.bonds)
+                    st.rerun()
+
+        st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
+
+# --- ВКЛАДКА 2: ГРАФІКИ ТА РЕІНВЕСТУВАННЯ ---
+with tab2:
+    st.subheader("📈 Динамічні графіки росту та ланцюжок реінвестування")
+
+    monthly_contrib = st.number_input("Щомісячне додаткове поповнення портфеля (₴):", value=15000.0)
+
+    st.markdown("### 🌟 Ланцюжок реінвестування персонального капіталу")
+    st.markdown("Вкажіть періоди, ставки та початкові суми. Після закінчення періоду кошти автоматично переносяться далі під новий відсоток.")
+
+    if 'reinvest_periods' not in st.session_state:
+        st.session_state.reinvest_periods = [
+            {"start": "16.10.2026", "end": "16.10.2027", "rate": 16.5, "initial": 50000.0},
+            {"start": "16.10.2027", "end": "16.10.2028", "rate": 14.0, "initial": 0.0}
+        ]
+
+    for p_idx, period in enumerate(st.session_state.reinvest_periods):
+        col_p1, col_p2, col_p3, col_p4, col_p5 = st.columns([2, 2, 2, 2, 1])
+        period["start"] = col_p1.text_input(f"Старт {p_idx+1}", period["start"], key=f"p_start_{p_idx}")
+        period["end"] = col_p2.text_input(f"Кінець {p_idx+1}", period["end"], key=f"p_end_{p_idx}")
+        period["rate"] = col_p3.number_input(f"Ставка % {p_idx+1}", value=period["rate"], key=f"p_rate_{p_idx}")
+        period["initial"] = col_p4.number_input(f"Сума {p_idx+1}", value=period["initial"], key=f"p_init_{p_idx}")
+
+        if col_p5.button("🗑️", key=f"del_p_{p_idx}") and len(st.session_state.reinvest_periods) > 1:
+            st.session_state.reinvest_periods.pop(p_idx)
+            st.rerun()
+
+    if st.button("➕ Додати період реінвестування"):
+        last_end = st.session_state.reinvest_periods[-1]["end"] if st.session_state.reinvest_periods else "20.02.2028"
+        st.session_state.reinvest_periods.append({"start": last_end, "end": "20.02.2029", "rate": 12.0, "initial": 0.0})
+        st.rerun()
+
+    fig, ax = plt.subplots(figsize=(10, 5), dpi=100)
+    fig.patch.set_facecolor(fig_bg)
+    ax.set_facecolor(fig_bg)
+
+    today = datetime.now()
+    max_days = 365 * 3
+    total_steps = 60
+    step_days = max(1, max_days // total_steps)
+
+    for idx, b in enumerate(st.session_state.bonds):
+        color = CHART_COLORS[idx % len(CHART_COLORS)]
+        b_inv = b["price"] * b["qty"]
+        daily_rate = (b.get("ytm", 16.0) / 100.0) / 365.0
+
+        try:
+            mat_date = datetime.strptime(b.get("maturity", "20.02.2028"), "%d.%m.%Y")
+        except ValueError:
+            mat_date = today + timedelta(days=730)
+
+        days_to_mat = max(1, (mat_date - today).days)
+        x_vals, y_vals = [], []
+
+        for step in range(total_steps + 1):
+            current_days = min(days_to_mat, int(step * step_days))
+            years_passed = current_days / 365.0
+            cur_val = b_inv * ((1 + daily_rate) ** current_days)
+            x_vals.append(years_passed)
+            y_vals.append(cur_val)
+            if current_days >= days_to_mat:
+                break
