@@ -9,7 +9,7 @@ st.set_page_config(page_title="ОВДП Ultimate Портфель", page_icon="�
 
 DATA_FILE = "ovdp_pro_data.json"
 
-# --- КАСТОМНІ CSS СТИЛІ ДЛЯ КНОПОК ТА РАМОК ---
+# --- КАСТОМНІ CSS СТИЛІ ДЛЯ КОМПАКТНИХ КНОПОК ---
 st.markdown("""
     <style>
     /* Яскраво-білі чіткі цифри для шапки метрик */
@@ -20,18 +20,19 @@ st.markdown("""
         color: #ffffff !important;
     }
 
-    /* Компактні кнопки керування */
+    /* Компактні кнопки всередині карток */
     div.stButton > button {
         border-radius: 6px !important;
         font-weight: bold !important;
         width: 100% !important;
         color: white !important;
         border: none !important;
-        padding: 4px 8px !important;
-        min-height: 32px !important;
+        padding: 4px 6px !important;
+        min-height: 28px !important;
+        font-size: 13px !important;
     }
     
-    /* Індивідуальні кольори кнопок у колонках всередині карток */
+    /* Індивідуальні кольори кнопок: Менше (синій), Більше (зелений), Видалити (червоний) */
     div[data-testid="column"]:nth-of-type(1) button {
         background-color: #2980b9 !important;
     }
@@ -165,37 +166,48 @@ with tab1:
                 st.success("Облігацію додано!")
                 st.rerun()
 
-    # Рендеринг карток з кольоровою рамкою та кнопками всередині блоку
+    # Рендеринг карток: кожен блок має свою кольорову рамку, а кнопки знаходяться всередині знизу
     for idx, b in enumerate(st.session_state.bonds):
         color = CHART_COLORS[idx % len(CHART_COLORS)]
         pos_inv = b['price'] * b['qty']
 
+        # Динамічне стилізування рамки контейнера під колір позиції
         st.markdown(f"""
-        <div style="border: 2px solid {color}; border-radius: 14px; padding: 18px; margin-top: 15px; margin-bottom: 25px; background-color: rgba(255, 255, 255, 0.015);">
-            <h4 style="margin-top: 0; margin-bottom: 8px; color: {color};">● {b['isin']} — {b.get('name', 'ОВДП')}</h4>
-            <p style="margin-bottom: 4px;"><b>Ціна:</b> {b['price']} ₴ | <b>Купон:</b> {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | <b>YTM:</b> {b['ytm']}% | <b>Погашення:</b> {b['maturity']}</p>
-            <p style="margin-bottom: 15px;"><b>Кількість:</b> {b['qty']} шт. | <b>Інвестиції:</b> {pos_inv:,.2f} ₴</p>
-            <hr style="border: 0.5px solid {color}; opacity: 0.3; margin: 10px 0 15px 0;">
-        </div>
+            <style>
+            div[data-testid="stVerticalBlockBorderWrapper"]:nth-of-type({idx+1}) {{
+                border: 2px solid {color} !important;
+                border-radius: 14px !important;
+                background-color: rgba(255, 255, 255, 0.015) !important;
+            }}
+            </style>
         """, unsafe_allow_html=True)
 
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            if st.button("➖ Менше", key=f"minus_{idx}", use_container_width=True):
-                if b['qty'] > 0:
-                    b['qty'] -= 1
+        with st.container(border=True):
+            st.markdown(f"<h4 style='margin-top: 0; margin-bottom: 8px; color: {color};'>● {b['isin']} — {b.get('name', 'ОВДП')}</h4>", unsafe_allow_html=True)
+            st.write(f"**Ціна:** {b['price']} ₴ | **Купон:** {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | **YTM:** {b['ytm']}% | **Погашення:** {b['maturity']}")
+            st.write(f"**Кількість:** {b['qty']} шт. | **Інвестиції:** {pos_inv:,.2f} ₴")
+            
+            st.markdown("<hr style='border: 0.5px solid rgba(255,255,255,0.15); margin: 12px 0;'>", unsafe_allow_html=True)
+
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                if st.button("➖ Менше", key=f"minus_{idx}", use_container_width=True):
+                    if b['qty'] > 0:
+                        b['qty'] -= 1
+                        save_data(st.session_state.bonds)
+                        st.rerun()
+            with c2:
+                if st.button("➕ Більше", key=f"plus_{idx}", use_container_width=True):
+                    b['qty'] += 1
                     save_data(st.session_state.bonds)
                     st.rerun()
-        with c2:
-            if st.button("➕ Більше", key=f"plus_{idx}", use_container_width=True):
-                b['qty'] += 1
-                save_data(st.session_state.bonds)
-                st.rerun()
-        with c3:
-            if st.button("❌ Видалити", key=f"del_{idx}", use_container_width=True):
-                del st.session_state.bonds[idx]
-                save_data(st.session_state.bonds)
-                st.rerun()
+            with c3:
+                if st.button("❌ Видалити", key=f"del_{idx}", use_container_width=True):
+                    del st.session_state.bonds[idx]
+                    save_data(st.session_state.bonds)
+                    st.rerun()
+
+        st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
 
 # --- ВКЛАДКА 2: ГРАФІКИ ТА РЕІНВЕСТУВАННЯ ---
 with tab2:
@@ -259,13 +271,7 @@ with tab2:
             if current_days >= days_to_mat:
                 break
 
-        ax.plot(
-            x_vals,
-            y_vals,
-            label=f"{b['isin']} ({b.get('name', 'ОВДП')})",
-            color=color,
-            linewidth=2.5
-        )
+        ax.plot(x_vals, y_vals, label=f"{b['isin']} ({b.get('name', 'ОВДП')})", color=color, linewidth=2.5)
 
     parsed_periods = []
     for p in st.session_state.reinvest_periods:
