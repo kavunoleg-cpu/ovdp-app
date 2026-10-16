@@ -9,7 +9,7 @@ st.set_page_config(page_title="ОВДП Ultimate Портфель", page_icon="�
 
 DATA_FILE = "ovdp_pro_data.json"
 
-# --- КАСТОМНІ CSS СТИЛІ ДЛЯ КОМПАКТНИХ КНОПОК ---
+# --- КАСТОМНІ CSS СТИЛІ ДЛЯ КНОПОК ТА РАМОК ---
 st.markdown("""
     <style>
     /* Яскраво-білі чіткі цифри для шапки метрик */
@@ -20,19 +20,18 @@ st.markdown("""
         color: #ffffff !important;
     }
 
-    /* Компактні кнопки всередині карток */
+    /* Компактні кнопки керування всередині карток */
     div.stButton > button {
         border-radius: 6px !important;
         font-weight: bold !important;
         width: 100% !important;
         color: white !important;
         border: none !important;
-        padding: 4px 6px !important;
-        min-height: 28px !important;
-        font-size: 13px !important;
+        padding: 4px 8px !important;
+        min-height: 32px !important;
     }
     
-    /* Індивідуальні кольори кнопок: Менше (синій), Більше (зелений), Видалити (червоний) */
+    /* Індивідуальні кольори кнопок у колонках всередині карток */
     div[data-testid="column"]:nth-of-type(1) button {
         background-color: #2980b9 !important;
     }
@@ -166,48 +165,43 @@ with tab1:
                 st.success("Облігацію додано!")
                 st.rerun()
 
-    # Рендеринг карток: кожен блок має свою кольорову рамку, а кнопки знаходяться всередині знизу
+    # Рендеринг позицій у вигляді єдиної кольорової рамки з кнопками всередині
     for idx, b in enumerate(st.session_state.bonds):
         color = CHART_COLORS[idx % len(CHART_COLORS)]
         pos_inv = b['price'] * b['qty']
 
-        # Динамічне стилізування рамки контейнера під колір позиції
+        # Верхня частина картки (кольорова рамка з інформацією)
         st.markdown(f"""
-            <style>
-            div[data-testid="stVerticalBlockBorderWrapper"]:nth-of-type({idx+1}) {{
-                border: 2px solid {color} !important;
-                border-radius: 14px !important;
-                background-color: rgba(255, 255, 255, 0.015) !important;
-            }}
-            </style>
+        <div style="border: 2px solid {color}; border-radius: 14px; padding: 18px 18px 8px 18px; margin-top: 15px; margin-bottom: 0px; background-color: rgba(255, 255, 255, 0.015);">
+            <h4 style="margin-top: 0; margin-bottom: 8px; color: {color};">● {b['isin']} — {b.get('name', 'ОВДП')}</h4>
+            <p style="margin-bottom: 4px;"><b>Ціна:</b> {b['price']} ₴ | <b>Купон:</b> {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | <b>YTM:</b> {b['ytm']}% | <b>Погашення:</b> {b['maturity']}</p>
+            <p style="margin-bottom: 12px;"><b>Кількість:</b> {b['qty']} шт. | <b>Інвестиції:</b> {pos_inv:,.2f} ₴</p>
+        </div>
         """, unsafe_allow_html=True)
 
-        with st.container(border=True):
-            st.markdown(f"<h4 style='margin-top: 0; margin-bottom: 8px; color: {color};'>● {b['isin']} — {b.get('name', 'ОВДП')}</h4>", unsafe_allow_html=True)
-            st.write(f"**Ціна:** {b['price']} ₴ | **Купон:** {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | **YTM:** {b['ytm']}% | **Погашення:** {b['maturity']}")
-            st.write(f"**Кількість:** {b['qty']} шт. | **Інвестиції:** {pos_inv:,.2f} ₴")
-            
-            st.markdown("<hr style='border: 0.5px solid rgba(255,255,255,0.15); margin: 12px 0;'>", unsafe_allow_html=True)
-
-            c1, c2, c3 = st.columns(3)
-            with c1:
-                if st.button("➖ Менше", key=f"minus_{idx}", use_container_width=True):
-                    if b['qty'] > 0:
-                        b['qty'] -= 1
-                        save_data(st.session_state.bonds)
-                        st.rerun()
-            with c2:
-                if st.button("➕ Більше", key=f"plus_{idx}", use_container_width=True):
-                    b['qty'] += 1
+        # Компактні кнопки керування всередині нижньої частини рамки
+        st.markdown('<div style="margin-top: -8px; padding: 0 14px 14px 14px; border-left: 2px solid ' + color + '; border-right: 2px solid ' + color + '; border-bottom: 2px solid ' + color + '; border-bottom-left-radius: 14px; border-bottom-right-radius: 14px; background-color: rgba(255, 255, 255, 0.015);">', unsafe_allow_html=True)
+        
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            if st.button("➖ Менше", key=f"minus_{idx}", use_container_width=True):
+                if b['qty'] > 0:
+                    b['qty'] -= 1
                     save_data(st.session_state.bonds)
                     st.rerun()
-            with c3:
-                if st.button("❌ Видалити", key=f"del_{idx}", use_container_width=True):
-                    del st.session_state.bonds[idx]
-                    save_data(st.session_state.bonds)
-                    st.rerun()
-
-        st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
+        with c2:
+            if st.button("➕ Більше", key=f"plus_{idx}", use_container_width=True):
+                b['qty'] += 1
+                save_data(st.session_state.bonds)
+                st.rerun()
+        with c3:
+            if st.button("❌ Видалити", key=f"del_{idx}", use_container_width=True):
+                del st.session_state.bonds[idx]
+                save_data(st.session_state.bonds)
+                st.rerun()
+                
+        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown("<div style='margin-bottom: 25px;'></div>", unsafe_allow_html=True)
 
 # --- ВКЛАДКА 2: ГРАФІКИ ТА РЕІНВЕСТУВАННЯ ---
 with tab2:
@@ -357,6 +351,4 @@ with tab3:
   * 📅 Дата закриття: **{b.get('maturity', 'Не вказано')}**
   * 📦 Кількість: `{b['qty']} шт.` | Інвестиції: `{pos_inv:,.2f} ₴`
   * 🎟️ Сума купонів: `+{total_coup:,.2f} ₴` | Збиток на номіналі: `-{price_diff_loss:,.2f} ₴`
-  * 💵 Чистий дохід: `+{net_profit:,.2f} ₴` | 🏁 До виплати: `{nominal_payout_pos:,.2f} ₴`
-"""
-    st.markdown(report_md)
+  * 💵 Чистий дохід: `+{net_profit:,.2f} ₴
