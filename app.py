@@ -16,14 +16,6 @@ st.markdown("""
     div[data-testid="metric-container"] * {
         color: #ffffff !important;
     }
-    div.stButton > button {
-        border-radius: 8px !important;
-        font-weight: bold !important;
-        width: 100% !important;
-        color: white !important;
-        border: none !important;
-        padding: 6px 10px !important;
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -138,33 +130,37 @@ with tab1:
         color = CHART_COLORS[idx % len(CHART_COLORS)]
         pos_inv = b['price'] * b['qty']
 
-        st.markdown(f"""
-            <div style="border: 2px solid {color}; border-radius: 14px; padding: 18px; margin-top: 10px; margin-bottom: 25px; background-color: rgba(255, 255, 255, 0.015);">
-                <h4 style="margin-top: 0; margin-bottom: 8px; color: {color};">● {b['isin']} — {b.get('name', 'ОВДП')}</h4>
-                <p style="margin-bottom: 4px;"><b>Ціна:</b> {b['price']} ₴ | <b>Купон:</b> {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | <b>YTM:</b> {b['ytm']}% | <b>Погашення:</b> {b['maturity']}</p>
-                <p style="margin-bottom: 12px;"><b>Кількість:</b> {b['qty']} шт. | <b>Інвестиції:</b> {pos_inv:,.2f} ₴</p>
-                <hr style="border: 0.5px solid {color}; opacity: 0.3; margin: 10px 0;">
-        """, unsafe_allow_html=True)
-
+        card_html = f"""
+        <div style="border: 2px solid {color}; border-radius: 14px; padding: 18px; margin-top: 15px; margin-bottom: 15px; background-color: rgba(255, 255, 255, 0.015);">
+            <h4 style="margin-top: 0; margin-bottom: 8px; color: {color};">● {b['isin']} — {b.get('name', 'ОВДП')}</h4>
+            <p style="margin-bottom: 4px;"><b>Ціна:</b> {b['price']} ₴ | <b>Купон:</b> {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | <b>YTM:</b> {b['ytm']}% | <b>Погашення:</b> {b['maturity']}</p>
+            <p style="margin-bottom: 12px;"><b>Кількість:</b> {b['qty']} шт. | <b>Інвестиції:</b> {pos_inv:,.2f} ₴</p>
+            <hr style="border: 0.5px solid {color}; opacity: 0.3; margin: 10px 0 15px 0;">
+        """
+        
         c1, c2, c3 = st.columns(3)
         with c1:
-            if st.button("➖ Менше", key=f"minus_{idx}", use_container_width=True):
-                if b['qty'] > 0:
-                    b['qty'] -= 1
-                    save_data(st.session_state.bonds)
-                    st.rerun()
+            m_clicked = st.button("➖ Менше", key=f"minus_{idx}", use_container_width=True)
         with c2:
-            if st.button("➕ Більше", key=f"plus_{idx}", use_container_width=True):
-                b['qty'] += 1
-                save_data(st.session_state.bonds)
-                st.rerun()
+            p_clicked = st.button("➕ Більше", key=f"plus_{idx}", use_container_width=True)
         with c3:
-            if st.button("❌ Видалити", key=f"del_{idx}", use_container_width=True):
-                del st.session_state.bonds[idx]
+            d_clicked = st.button("❌ Видалити", key=f"del_{idx}", use_container_width=True)
+
+        if m_clicked:
+            if b['qty'] > 0:
+                b['qty'] -= 1
                 save_data(st.session_state.bonds)
                 st.rerun()
+        if p_clicked:
+            b['qty'] += 1
+            save_data(st.session_state.bonds)
+            st.rerun()
+        if d_clicked:
+            del st.session_state.bonds[idx]
+            save_data(st.session_state.bonds)
+            st.rerun()
 
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown(card_html, unsafe_allow_html=True)
 
 with tab2:
     st.subheader("📈 Динамічні графіки росту та ланцюжок реінвестування")
