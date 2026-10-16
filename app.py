@@ -130,31 +130,33 @@ with tab1:
         color = CHART_COLORS[idx % len(CHART_COLORS)]
         pos_inv = b['price'] * b['qty']
 
+        st.markdown(f"""
+        <div style="border: 2px solid {color}; border-radius: 14px; padding: 18px; margin-top: 15px; margin-bottom: 10px; background-color: rgba(255, 255, 255, 0.015);">
+            <h4 style="margin-top: 0; margin-bottom: 8px; color: {color};">● {b['isin']} — {b.get('name', 'ОВДП')}</h4>
+            <p style="margin-bottom: 4px;"><b>Ціна:</b> {b['price']} ₴ | <b>Купон:</b> {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | <b>YTM:</b> {b['ytm']}% | <b>Погашення:</b> {b['maturity']}</p>
+            <p style="margin-bottom: 15px;"><b>Кількість:</b> {b['qty']} шт. | <b>Інвестиції:</b> {pos_inv:,.2f} ₴</p>
+        </div>
+        """, unsafe_allow_html=True)
+
         c1, c2, c3 = st.columns(3)
         with c1:
-            if st.button("➖ Менше", key=f"minus_{idx}", use_container_width=True):
+            if st.button("➖", key=f"minus_{idx}", use_container_width=True):
                 if b['qty'] > 0:
                     b['qty'] -= 1
                     save_data(st.session_state.bonds)
                     st.rerun()
         with c2:
-            if st.button("➕ Більше", key=f"plus_{idx}", use_container_width=True):
+            if st.button("➕", key=f"plus_{idx}", use_container_width=True):
                 b['qty'] += 1
                 save_data(st.session_state.bonds)
                 st.rerun()
         with c3:
-            if st.button("❌ Видалити", key=f"del_{idx}", use_container_width=True):
+            if st.button("❌", key=f"del_{idx}", use_container_width=True):
                 del st.session_state.bonds[idx]
                 save_data(st.session_state.bonds)
                 st.rerun()
 
-        st.markdown(f"""
-        <div style="border: 2px solid {color}; border-radius: 14px; padding: 18px; margin-top: 5px; margin-bottom: 25px; background-color: rgba(255, 255, 255, 0.015);">
-            <h4 style="margin-top: 0; margin-bottom: 8px; color: {color};">● {b['isin']} — {b.get('name', 'ОВДП')}</h4>
-            <p style="margin-bottom: 4px;"><b>Ціна:</b> {b['price']} ₴ | <b>Купон:</b> {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | <b>YTM:</b> {b['ytm']}% | <b>Погашення:</b> {b['maturity']}</p>
-            <p style="margin-bottom: 0px;"><b>Кількість:</b> {b['qty']} шт. | <b>Інвестиції:</b> {pos_inv:,.2f} ₴</p>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown("<div style='margin-bottom: 25px;'></div>", unsafe_allow_html=True)
 
 with tab2:
     st.subheader("📈 Динамічні графіки росту та ланцюжок реінвестування")
@@ -198,4 +200,82 @@ with tab2:
         daily_rate = (b.get("ytm", 16.0) / 100.0) / 365.0
 
         try:
-            mat_date = datetime.strptime(b.get("maturity",
+            mat_date = datetime.strptime(b.get("maturity", "20.02.2028"), "%d.%m.%Y")
+        except ValueError:
+            mat_date = today + timedelta(days=730)
+
+        days_to_mat = max(1, (mat_date - today).days)
+        x_vals, y_vals = [], []
+
+        for step in range(total_steps + 1):
+            current_days = min(days_to_mat, int(step * step_days))
+            years_passed = current_days / 365.0
+            cur_val = b_inv * ((1 + daily_rate) ** current_days)
+            x_vals.append(years_passed)
+            y_vals.append(cur_val)
+            if current_days >= days_to_mat:
+                break
+
+        ax.plot(
+            x_vals,
+            y_vals,
+            label=f"{b['isin']} ({b.get('name', 'ОВДП')})",
+            color=color,
+            linewidth=2.5
+        )
+
+    parsed_periods = []
+    for p in st.session_state.reinvest_periods:
+        try:
+            parsed_periods.append({
+                "start": datetime.strptime(p["start"].strip(), "%d.%m.%Y"),
+                "end": datetime.strptime(p["end"].strip(), "%d.%m.%Y"),
+                "rate": p["rate"] / 100.0,
+                "initial": p["initial"]
+            })
+        except ValueError:
+            pass
+
+    if parsed_periods:
+        chain_x, chain_y = [], []
+        current_capital = 0.0
+
+        for i, period in enumerate(parsed_periods):
+            p_start, p_end, p_rate, p_init = period["start"], period["end"], period["rate"], period["initial"]
+            if p_init > 0 or i == 0:
+                current_capital += p_init
+
+            days_in_period = max(1, (p_end - p_start).days)
+            daily_r = p_rate / 365.0
+            sim_days = 0
+
+            while sim_days <= days_in_period:
+                day_date = p_start + timedelta(days=sim_days)
+                if day_date >= today:
+                    from_today = (day_date - today).days
+                    current_capital *= (1 + daily_r)
+                    chain_x.append(from_today / 365.0)
+                    chain_y.append(current_capital)
+                sim_days += max(1, days_in_period // 20)
+
+        if chain_x:
+            ax.plot(chain_x, chain_y, label="🌟 Персональний реінвест (ланцюжок)", color="#ff3838", linewidth=3.5, linestyle="--")
+
+    ax.set_title("Динаміка портфеля та реінвестування", color=text_color, fontsize=12, fontweight="bold")
+    ax.set_xlabel("Роки", color=text_color)
+    ax.set_ylabel("Сума (₴)", color=text_color)
+    ax.tick_params(colors=text_color)
+    for spine in ax.spines.values():
+        spine.set_color(text_color)
+    ax.legend(facecolor=fig_bg, edgecolor="none", labelcolor=text_color, fontsize=9)
+    ax.grid(True, linestyle=":", alpha=0.3, color=text_color)
+    fig.tight_layout()
+
+    st.pyplot(fig)
+
+with tab3:
+    st.subheader("📋 Структурований звіт за датами погашення")
+
+    def parse_date(bond):
+        try:
+            return datetime.strptime(bond.get("maturity", "31.12.
