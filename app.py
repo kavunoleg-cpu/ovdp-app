@@ -16,13 +16,6 @@ st.markdown("""
     div[data-testid="metric-container"] * {
         color: #ffffff !important;
     }
-    div.stButton > button {
-        border-radius: 8px !important;
-        font-weight: bold !important;
-        width: 100% !important;
-        color: white !important;
-        border: none !important;
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -137,33 +130,31 @@ with tab1:
         color = CHART_COLORS[idx % len(CHART_COLORS)]
         pos_inv = b['price'] * b['qty']
 
+        minus_clicked = st.button("➖ Менше", key=f"minus_{idx}", use_container_width=True)
+        plus_clicked = st.button("➕ Більше", key=f"plus_{idx}", use_container_width=True)
+        del_clicked = st.button("❌ Видалити", key=f"del_{idx}", use_container_width=True)
+
+        if minus_clicked:
+            if b['qty'] > 0:
+                b['qty'] -= 1
+                save_data(st.session_state.bonds)
+                st.rerun()
+        if plus_clicked:
+            b['qty'] += 1
+            save_data(st.session_state.bonds)
+            st.rerun()
+        if del_clicked:
+            del st.session_state.bonds[idx]
+            save_data(st.session_state.bonds)
+            st.rerun()
+
         st.markdown(f"""
-            <div style="border: 2px solid {color}; border-radius: 16px; padding: 18px; margin-bottom: 10px; background-color: rgba(255, 255, 255, 0.015);">
+            <div style="border: 2px solid {color}; border-radius: 14px; padding: 18px; margin-top: 5px; margin-bottom: 25px; background-color: rgba(255, 255, 255, 0.015);">
                 <h4 style="margin-top: 0; margin-bottom: 8px; color: {color};">● {b['isin']} — {b.get('name', 'ОВДП')}</h4>
                 <p style="margin-bottom: 4px;"><b>Ціна:</b> {b['price']} ₴ | <b>Купон:</b> {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | <b>YTM:</b> {b['ytm']}% | <b>Погашення:</b> {b['maturity']}</p>
-                <p style="margin-bottom: 15px;"><b>Кількість:</b> {b['qty']} шт. | <b>Інвестиції:</b> {pos_inv:,.2f} ₴</p>
+                <p style="margin-bottom: 0px;"><b>Кількість:</b> {b['qty']} шт. | <b>Інвестиції:</b> {pos_inv:,.2f} ₴</p>
+            </div>
         """, unsafe_allow_html=True)
-
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            if st.button("➖ Менше", key=f"minus_{idx}", use_container_width=True):
-                if b['qty'] > 0:
-                    b['qty'] -= 1
-                    save_data(st.session_state.bonds)
-                    st.rerun()
-        with c2:
-            if st.button("➕ Більше", key=f"plus_{idx}", use_container_width=True):
-                b['qty'] += 1
-                save_data(st.session_state.bonds)
-                st.rerun()
-        with c3:
-            if st.button("❌ Видалити", key=f"del_{idx}", use_container_width=True):
-                del st.session_state.bonds[idx]
-                save_data(st.session_state.bonds)
-                st.rerun()
-
-        st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown("<div style='margin-bottom: 25px;'></div>", unsafe_allow_html=True)
 
 with tab2:
     st.subheader("📈 Динамічні графіки росту та ланцюжок реінвестування")
