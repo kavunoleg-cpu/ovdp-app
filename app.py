@@ -165,23 +165,19 @@ with tab1:
                 st.success("Облігацію додано!")
                 st.rerun()
 
-    # Рендеринг позицій у вигляді єдиної кольорової рамки з кнопками всередині
+    # Рендеринг позицій: інформація та компактні кнопки об'єднані всередині єдиної кольорової рамки
     for idx, b in enumerate(st.session_state.bonds):
         color = CHART_COLORS[idx % len(CHART_COLORS)]
         pos_inv = b['price'] * b['qty']
 
-        # Верхня частина картки (кольорова рамка з інформацією)
         st.markdown(f"""
-        <div style="border: 2px solid {color}; border-radius: 14px; padding: 18px 18px 8px 18px; margin-top: 15px; margin-bottom: 0px; background-color: rgba(255, 255, 255, 0.015);">
+        <div style="border: 2px solid {color}; border-radius: 14px; padding: 18px 18px 12px 18px; margin-top: 15px; margin-bottom: 25px; background-color: rgba(255, 255, 255, 0.015);">
             <h4 style="margin-top: 0; margin-bottom: 8px; color: {color};">● {b['isin']} — {b.get('name', 'ОВДП')}</h4>
             <p style="margin-bottom: 4px;"><b>Ціна:</b> {b['price']} ₴ | <b>Купон:</b> {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | <b>YTM:</b> {b['ytm']}% | <b>Погашення:</b> {b['maturity']}</p>
-            <p style="margin-bottom: 12px;"><b>Кількість:</b> {b['qty']} шт. | <b>Інвестиції:</b> {pos_inv:,.2f} ₴</p>
-        </div>
+            <p style="margin-bottom: 15px;"><b>Кількість:</b> {b['qty']} шт. | <b>Інвестиції:</b> {pos_inv:,.2f} ₴</p>
+            <hr style="border: 0.5px solid {color}; opacity: 0.3; margin: 10px 0 15px 0;">
         """, unsafe_allow_html=True)
 
-        # Компактні кнопки керування всередині нижньої частини рамки
-        st.markdown('<div style="margin-top: -8px; padding: 0 14px 14px 14px; border-left: 2px solid ' + color + '; border-right: 2px solid ' + color + '; border-bottom: 2px solid ' + color + '; border-bottom-left-radius: 14px; border-bottom-right-radius: 14px; background-color: rgba(255, 255, 255, 0.015);">', unsafe_allow_html=True)
-        
         c1, c2, c3 = st.columns(3)
         with c1:
             if st.button("➖ Менше", key=f"minus_{idx}", use_container_width=True):
@@ -199,9 +195,8 @@ with tab1:
                 del st.session_state.bonds[idx]
                 save_data(st.session_state.bonds)
                 st.rerun()
-                
+
         st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown("<div style='margin-bottom: 25px;'></div>", unsafe_allow_html=True)
 
 # --- ВКЛАДКА 2: ГРАФІКИ ТА РЕІНВЕСТУВАННЯ ---
 with tab2:
@@ -328,16 +323,15 @@ with tab3:
 
     sorted_bonds = sorted(st.session_state.bonds, key=parse_date)
 
-    report_md = f"""
-### 📊 Загальні підсумки портфеля:
+    report_md = f"""### 📊 Загальні підсумки портфеля:
 - **Загальна сума інвестицій:** {total_inv:,.2f} ₴
 - **Загальний чистий прибуток:** +{total_net_profit:,.2f} ₴
 - **Сума до виплати загалом:** {total_payout:,.2f} ₴
 - **Середньозважений YTM:** {weighted_ytm:.2f}%
 
 ---
-### 📅 Закриття позицій (від найближчої до найдальшої):
-"""
+### 📅 Закриття позицій (від найближчої до найдальшої):"""
+
     for b in sorted_bonds:
         pos_inv = b["price"] * b["qty"]
         t_coupons = b.get("total_coupons", 6)
@@ -347,8 +341,11 @@ with tab3:
         nominal_payout_pos = 1000.0 * b["qty"] + net_profit
 
         report_md += f"""
+
 - **{b['isin']} — {b.get('name', 'Без назви')}**
   * 📅 Дата закриття: **{b.get('maturity', 'Не вказано')}**
   * 📦 Кількість: `{b['qty']} шт.` | Інвестиції: `{pos_inv:,.2f} ₴`
   * 🎟️ Сума купонів: `+{total_coup:,.2f} ₴` | Збиток на номіналі: `-{price_diff_loss:,.2f} ₴`
-  * 💵 Чистий дохід: `+{net_profit:,.2f} ₴
+  * 💵 Чистий дохід: `+{net_profit:,.2f} ₴` | 🏁 До виплати: `{nominal_payout_pos:,.2f} ₴`"""
+
+    st.markdown(report_md)
