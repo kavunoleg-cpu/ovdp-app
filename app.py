@@ -4,15 +4,12 @@ import os
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 
-# Налаштування сторінки
 st.set_page_config(page_title="ОВДП Ultimate Портфель", page_icon="📊", layout="wide")
 
 DATA_FILE = "ovdp_pro_data.json"
 
-# --- КАСТОМНІ CSS СТИЛІ ---
 st.markdown("""
     <style>
-    /* Яскраво-білі чіткі цифри для шапки метрик */
     [data-testid="stMetricValue"], [data-testid="stMetricLabel"], [data-testid="stMetricDelta"] {
         color: #ffffff !important;
     }
@@ -22,7 +19,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Початкові дані за замовчуванням
 DEFAULT_BONDS = [
     {"isin": "UA4000239081", "name": "ОВДП Позиція 1", "price": 1082.05, "coupon": 80.80, "total_coupons": 6, "ytm": 16.85, "maturity": "20.02.2027", "qty": 5},
     {"isin": "UA4000204861", "name": "ОВДП Позиція 2", "price": 1045.00, "coupon": 45.00, "total_coupons": 4, "ytm": 15.50, "maturity": "15.10.2026", "qty": 10}
@@ -30,7 +26,6 @@ DEFAULT_BONDS = [
 
 CHART_COLORS = ["#2ecc71", "#3498db", "#e74c3c", "#f1c40f", "#9b59b6", "#1abc9c", "#e67e22", "#e84393"]
 
-# Завантаження та збереження даних
 def load_data():
     if os.path.exists(DATA_FILE):
         try:
@@ -50,7 +45,6 @@ def save_data(bonds):
 if 'bonds' not in st.session_state:
     st.session_state.bonds = load_data()
 
-# --- БОКОВА ПАНЕЛЬ ---
 st.sidebar.title("⚙️ Керування")
 theme = st.sidebar.selectbox("Оберіть тему оформлення:", ["Темна (Класична)", "Світла", "Смарагдова"])
 
@@ -83,7 +77,6 @@ if uploaded_file is not None:
     except Exception as e:
         st.sidebar.error(f"Помилка читання файлу: {e}")
 
-# --- ГОЛОВНИЙ ЕКРАН ---
 st.title("📊 Облік портфеля ОВДП та Ланцюжок Реінвестування")
 
 total_inv = sum(b["price"] * b["qty"] for b in st.session_state.bonds)
@@ -101,7 +94,6 @@ st.markdown("---")
 
 tab1, tab2, tab3 = st.tabs(["📊 Портфель та Облігації", "📈 Динамічні графіки й Реінвест", "📋 Аналітичний звіт"])
 
-# --- ВКЛАДКА 1: ПОРТФЕЛЬ ---
 with tab1:
     st.subheader("Список позицій у портфелі")
 
@@ -134,49 +126,43 @@ with tab1:
                 st.success("Облігацію додано!")
                 st.rerun()
 
-    # Повністю єдині картки через чистий HTML (рамка містить у собі абсолютно все!)
     for idx, b in enumerate(st.session_state.bonds):
         color = CHART_COLORS[idx % len(CHART_COLORS)]
-
-        # Розрахунок інвестицій для відображення
         pos_inv = b['price'] * b['qty']
 
         st.markdown(f"""
-            <div style="border: 2px solid {color}; border-radius: 16px; padding: 20px; margin-bottom: 25px; background-color: rgba(255, 255, 255, 0.015);">
-                <h4 style="margin-top: 0; margin-bottom: 10px; color: {color};">● {b['isin']} — {b.get('name', 'ОВДП')}</h4>
-                <p style="margin-bottom: 6px;"><b>Ціна:</b> {b['price']} ₴ | <b>Купон:</b> {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | <b>YTM:</b> {b['ytm']}% | <b>Погашення:</b> {b['maturity']}</p>
-                <p style="margin-bottom: 15px;"><b>Кількість:</b> {b['qty']} шт. | <b>Інвестиції:</b> {pos_inv:,.2f} ₴</p>
+            <div style="border: 2px solid {color}; border-radius: 14px; padding: 18px; margin-bottom: 6px; background-color: rgba(255, 255, 255, 0.015);">
+                <h4 style="margin-top: 0; margin-bottom: 8px; color: {color};">● {b['isin']} — {b.get('name', 'ОВДП')}</h4>
+                <p style="margin-bottom: 4px;"><b>Ціна:</b> {b['price']} ₴ | <b>Купон:</b> {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | <b>YTM:</b> {b['ytm']}% | <b>Погашення:</b> {b['maturity']}</p>
+                <p style="margin-bottom: 0px;"><b>Кількість:</b> {b['qty']} шт. | <b>Інвестиції:</b> {pos_inv:,.2f} ₴</p>
             </div>
         """, unsafe_allow_html=True)
 
-        # Дії керування всередині потоку під цим блоком або компактно
-        col_m, col_p, col_del = st.columns(3)
-        with col_m:
+        c1, c2, c3 = st.columns(3)
+        with c1:
             if st.button("➖ Менше", key=f"minus_{idx}", use_container_width=True):
                 if b['qty'] > 0:
                     b['qty'] -= 1
                     save_data(st.session_state.bonds)
                     st.rerun()
-        with col_p:
+        with c2:
             if st.button("➕ Більше", key=f"plus_{idx}", use_container_width=True):
                 b['qty'] += 1
                 save_data(st.session_state.bonds)
                 st.rerun()
-        with col_del:
+        with c3:
             if st.button("❌ Видалити", key=f"del_{idx}", use_container_width=True):
                 del st.session_state.bonds[idx]
                 save_data(st.session_state.bonds)
                 st.rerun()
 
-# --- ВКЛАДКА 2: ГРАФІКИ ТА РЕІНВЕСТУВАННЯ ---
+        st.markdown("<div style='margin-bottom: 25px;'></div>", unsafe_allow_html=True)
+
 with tab2:
     st.subheader("📈 Динамічні графіки росту та ланцюжок реінвестування")
-
     monthly_contrib = st.number_input("Щомісячне додаткове поповнення портфеля (₴):", value=15000.0)
 
     st.markdown("### 🌟 Ланцюжок реінвестування персонального капіталу")
-    st.markdown("Вкажіть періоди, ставки та початкові суми. Після закінчення періоду кошти автоматично переносяться далі під новий відсоток.")
-
     if 'reinvest_periods' not in st.session_state:
         st.session_state.reinvest_periods = [
             {"start": "16.10.2026", "end": "16.10.2027", "rate": 16.5, "initial": 50000.0},
@@ -281,7 +267,6 @@ with tab2:
 
     st.pyplot(fig)
 
-# --- ВКЛАДКА 3: АНАЛІТИЧНИЙ ЗВІТ ---
 with tab3:
     st.subheader("📋 Структурований звіт за датами погашення")
 
