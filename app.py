@@ -27,21 +27,27 @@ st.markdown("""
         width: 100% !important;
         color: white !important;
         border: none !important;
-        padding: 4px 8px !important;
-        min-height: 32px !important;
+        padding: 0px 6px !important;
+        min-height: 26px !important;
+        height: 26px !important;
+        line-height: 1 !important;
+    }
+    div.stButton > button p {
+        font-size: 12px !important;
+        margin: 0 !important;
     }
 
-    /* Кольори кнопок усередині карток */
+    /* Кольори кнопок усередині карток: 1 = мінус, 3 = плюс, 4 = видалити */
     div[class*="st-key-card_"] div[data-testid="stColumn"]:nth-of-type(1) button,
     div[class*="st-key-card_"] div[data-testid="column"]:nth-of-type(1) button {
         background-color: #2980b9 !important;
     }
-    div[class*="st-key-card_"] div[data-testid="stColumn"]:nth-of-type(2) button,
-    div[class*="st-key-card_"] div[data-testid="column"]:nth-of-type(2) button {
-        background-color: #27ae60 !important;
-    }
     div[class*="st-key-card_"] div[data-testid="stColumn"]:nth-of-type(3) button,
     div[class*="st-key-card_"] div[data-testid="column"]:nth-of-type(3) button {
+        background-color: #27ae60 !important;
+    }
+    div[class*="st-key-card_"] div[data-testid="stColumn"]:nth-of-type(4) button,
+    div[class*="st-key-card_"] div[data-testid="column"]:nth-of-type(4) button {
         background-color: #c0392b !important;
     }
     </style>
@@ -184,19 +190,24 @@ with tab1:
             <p style="margin-bottom: 10px;"><b>Кількість:</b> {b['qty']} шт. | <b>Інвестиції:</b> {pos_inv:,.2f} ₴</p>
             """, unsafe_allow_html=True)
 
-            c1, c2, c3 = st.columns(3)
+            c1, c2, c3, c4, _sp = st.columns([1, 1, 1, 2, 5])
             with c1:
-                if st.button("➖ Менше", key=f"minus_{idx}", use_container_width=True):
+                if st.button("➖", key=f"minus_{idx}", use_container_width=True):
                     if b['qty'] > 0:
                         b['qty'] -= 1
                         save_data(st.session_state.bonds)
                         st.rerun()
             with c2:
-                if st.button("➕ Більше", key=f"plus_{idx}", use_container_width=True):
+                st.markdown(
+                    f"<div style='text-align:center; font-weight:bold; font-size:15px; line-height:26px;'>{b['qty']}</div>",
+                    unsafe_allow_html=True
+                )
+            with c3:
+                if st.button("➕", key=f"plus_{idx}", use_container_width=True):
                     b['qty'] += 1
                     save_data(st.session_state.bonds)
                     st.rerun()
-            with c3:
+            with c4:
                 if st.button("❌ Видалити", key=f"del_{idx}", use_container_width=True):
                     del st.session_state.bonds[idx]
                     save_data(st.session_state.bonds)
