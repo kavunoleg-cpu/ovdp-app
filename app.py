@@ -131,5 +131,56 @@ with tab1:
         pos_inv = b['price'] * b['qty']
 
         with st.container(border=True):
-            st.markdown(f"<h4 style='margin-top: 0; margin-bottom: 8px; color: {color};'>● {b['isin']} — {b.get('name', 'ОВДП')}</h4>", unsafe_allow_html=True)
-            st.write(f"**Ціна:**
+            st.markdown(
+                f"<h4 style='margin-top: 0; margin-bottom: 8px; color: {color};'>"
+                f"● {b['isin']} — {b.get('name', 'ОВДП')}</h4>",
+                unsafe_allow_html=True
+            )
+            st.write(
+                f"**Ціна:** {b['price']} ₴ | "
+                f"**Купон:** {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | "
+                f"**YTM:** {b['ytm']}% | "
+                f"**Погашення:** {b['maturity']}"
+            )
+            st.write(
+                f"**Кількість:** {b['qty']} шт. | "
+                f"**Інвестиції:** {pos_inv:,.2f} ₴"
+            )
+
+            bc1, bc2, bc3 = st.columns(3)
+            with bc1:
+                if st.button("➖", key=f"minus_{idx}", use_container_width=True):
+                    if b['qty'] > 0:
+                        b['qty'] -= 1
+                        save_data(st.session_state.bonds)
+                        st.rerun()
+            with bc2:
+                if st.button("➕", key=f"plus_{idx}", use_container_width=True):
+                    b['qty'] += 1
+                    save_data(st.session_state.bonds)
+                    st.rerun()
+            with bc3:
+                if st.button("❌", key=f"del_{idx}", use_container_width=True):
+                    del st.session_state.bonds[idx]
+                    save_data(st.session_state.bonds)
+                    st.rerun()
+
+        st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
+
+with tab2:
+    st.subheader("📈 Динамічні графіки росту та ланцюжок реінвестування")
+    monthly_contrib = st.number_input("Щомісячне додаткове поповнення портфеля (₴):", value=15000.0)
+
+    st.markdown("### 🌟 Ланцюжок реінвестування персонального капіталу")
+    if 'reinvest_periods' not in st.session_state:
+        st.session_state.reinvest_periods = [
+            {"start": "16.10.2026", "end": "16.10.2027", "rate": 16.5, "initial": 50000.0},
+            {"start": "16.10.2027", "end": "16.10.2028", "rate": 14.0, "initial": 0.0}
+        ]
+
+    for p_idx, period in enumerate(st.session_state.reinvest_periods):
+        col_p1, col_p2, col_p3, col_p4, col_p5 = st.columns([2, 2, 2, 2, 1])
+        period["start"] = col_p1.text_input(f"Старт {p_idx+1}", period["start"], key=f"p_start_{p_idx}")
+        period["end"] = col_p2.text_input(f"Кінець {p_idx+1}", period["end"], key=f"p_end_{p_idx}")
+        period["rate"] = col_p3.number_input(f"Ставка % {p_idx+1}", value=period["rate"], key=f"p_rate_{p_idx}")
+        period["initial"] = col_p4.number_input(f"Сума {p_idx+1}", value=period["initial"], key=f"p_init_{p_idx}")
