@@ -31,30 +31,18 @@ st.markdown("""
         min-height: 32px !important;
     }
 
-    /* Кольори кнопок лише всередині карток (підтримка старих і нових версій Streamlit) */
-    div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="column"]:nth-of-type(1) button,
-    div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stColumn"]:nth-of-type(1) button {
+    /* Кольори кнопок усередині карток */
+    div[class*="st-key-card_"] div[data-testid="stColumn"]:nth-of-type(1) button,
+    div[class*="st-key-card_"] div[data-testid="column"]:nth-of-type(1) button {
         background-color: #2980b9 !important;
     }
-    div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="column"]:nth-of-type(1) button:hover,
-    div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stColumn"]:nth-of-type(1) button:hover {
-        background-color: #2471a3 !important;
-    }
-    div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="column"]:nth-of-type(2) button,
-    div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stColumn"]:nth-of-type(2) button {
+    div[class*="st-key-card_"] div[data-testid="stColumn"]:nth-of-type(2) button,
+    div[class*="st-key-card_"] div[data-testid="column"]:nth-of-type(2) button {
         background-color: #27ae60 !important;
     }
-    div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="column"]:nth-of-type(2) button:hover,
-    div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stColumn"]:nth-of-type(2) button:hover {
-        background-color: #229954 !important;
-    }
-    div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="column"]:nth-of-type(3) button,
-    div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stColumn"]:nth-of-type(3) button {
+    div[class*="st-key-card_"] div[data-testid="stColumn"]:nth-of-type(3) button,
+    div[class*="st-key-card_"] div[data-testid="column"]:nth-of-type(3) button {
         background-color: #c0392b !important;
-    }
-    div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="column"]:nth-of-type(3) button:hover,
-    div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stColumn"]:nth-of-type(3) button:hover {
-        background-color: #a93226 !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -171,28 +159,26 @@ with tab1:
                 st.success("Облігацію додано!")
                 st.rerun()
 
-    # Кольори рамок для кожної картки (потрібен Streamlit 1.29+)
+    # Кольори рамок для кожної картки
     border_css = "<style>"
     for i in range(len(st.session_state.bonds)):
         c = CHART_COLORS[i % len(CHART_COLORS)]
         border_css += f"""
-        div[data-testid="stVerticalBlockBorderWrapper"]:has(.card-{i}):not(:has(div[data-testid="stVerticalBlockBorderWrapper"] .card-{i})) {{
+        .st-key-card_{i} {{
             border: 2px solid {c} !important;
             border-radius: 14px !important;
-            padding: 8px 10px !important;
-            margin-bottom: 18px;
+            padding: 12px 14px !important;
+            margin-bottom: 18px !important;
         }}"""
     border_css += "</style>"
     st.markdown(border_css, unsafe_allow_html=True)
 
-    # Рендеринг позицій: інформація та кнопки всередині однієї рамки
     for idx, b in enumerate(st.session_state.bonds):
         color = CHART_COLORS[idx % len(CHART_COLORS)]
         pos_inv = b['price'] * b['qty']
 
-        with st.container(border=True):
+        with st.container(border=True, key=f"card_{idx}"):
             st.markdown(f"""
-            <span class="card-{idx}"></span>
             <h4 style="margin: 0 0 8px 0; color: {color};">● {b['isin']} — {b.get('name', 'ОВДП')}</h4>
             <p style="margin-bottom: 4px;"><b>Ціна:</b> {b['price']} ₴ | <b>Купон:</b> {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | <b>YTM:</b> {b['ytm']}% | <b>Погашення:</b> {b['maturity']}</p>
             <p style="margin-bottom: 10px;"><b>Кількість:</b> {b['qty']} шт. | <b>Інвестиції:</b> {pos_inv:,.2f} ₴</p>
