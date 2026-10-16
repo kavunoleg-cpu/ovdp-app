@@ -16,6 +16,13 @@ st.markdown("""
     div[data-testid="metric-container"] * {
         color: #ffffff !important;
     }
+    div.stButton > button {
+        border-radius: 8px !important;
+        font-weight: bold !important;
+        width: 100% !important;
+        color: white !important;
+        border: none !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -131,11 +138,10 @@ with tab1:
         pos_inv = b['price'] * b['qty']
 
         st.markdown(f"""
-            <div style="border: 2px solid {color}; border-radius: 14px; padding: 18px; margin-bottom: 6px; background-color: rgba(255, 255, 255, 0.015);">
+            <div style="border: 2px solid {color}; border-radius: 16px; padding: 18px; margin-bottom: 10px; background-color: rgba(255, 255, 255, 0.015);">
                 <h4 style="margin-top: 0; margin-bottom: 8px; color: {color};">● {b['isin']} — {b.get('name', 'ОВДП')}</h4>
                 <p style="margin-bottom: 4px;"><b>Ціна:</b> {b['price']} ₴ | <b>Купон:</b> {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | <b>YTM:</b> {b['ytm']}% | <b>Погашення:</b> {b['maturity']}</p>
-                <p style="margin-bottom: 0px;"><b>Кількість:</b> {b['qty']} шт. | <b>Інвестиції:</b> {pos_inv:,.2f} ₴</p>
-            </div>
+                <p style="margin-bottom: 15px;"><b>Кількість:</b> {b['qty']} шт. | <b>Інвестиції:</b> {pos_inv:,.2f} ₴</p>
         """, unsafe_allow_html=True)
 
         c1, c2, c3 = st.columns(3)
@@ -156,6 +162,7 @@ with tab1:
                 save_data(st.session_state.bonds)
                 st.rerun()
 
+        st.markdown('</div>', unsafe_allow_html=True)
         st.markdown("<div style='margin-bottom: 25px;'></div>", unsafe_allow_html=True)
 
 with tab2:
