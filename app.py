@@ -130,5 +130,72 @@ with tab1:
         color = CHART_COLORS[idx % len(CHART_COLORS)]
         pos_inv = b['price'] * b['qty']
 
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            if st.button("➖ Менше", key=f"minus_{idx}", use_container_width=True):
+                if b['qty'] > 0:
+                    b['qty'] -= 1
+                    save_data(st.session_state.bonds)
+                    st.rerun()
+        with c2:
+            if st.button("➕ Більше", key=f"plus_{idx}", use_container_width=True):
+                b['qty'] += 1
+                save_data(st.session_state.bonds)
+                st.rerun()
+        with c3:
+            if st.button("❌ Видалити", key=f"del_{idx}", use_container_width=True):
+                del st.session_state.bonds[idx]
+                save_data(st.session_state.bonds)
+                st.rerun()
+
         st.markdown(f"""
-        <div style="border: 2px solid {color}; border-radius: 1
+        <div style="border: 2px solid {color}; border-radius: 14px; padding: 18px; margin-top: 5px; margin-bottom: 25px; background-color: rgba(255, 255, 255, 0.015);">
+            <h4 style="margin-top: 0; margin-bottom: 8px; color: {color};">● {b['isin']} — {b.get('name', 'ОВДП')}</h4>
+            <p style="margin-bottom: 4px;"><b>Ціна:</b> {b['price']} ₴ | <b>Купон:</b> {b['coupon']} ₴ ({b.get('total_coupons', 6)} вип.) | <b>YTM:</b> {b['ytm']}% | <b>Погашення:</b> {b['maturity']}</p>
+            <p style="margin-bottom: 0px;"><b>Кількість:</b> {b['qty']} шт. | <b>Інвестиції:</b> {pos_inv:,.2f} ₴</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+with tab2:
+    st.subheader("📈 Динамічні графіки росту та ланцюжок реінвестування")
+    monthly_contrib = st.number_input("Щомісячне додаткове поповнення портфеля (₴):", value=15000.0)
+
+    st.markdown("### 🌟 Ланцюжок реінвестування персонального капіталу")
+    if 'reinvest_periods' not in st.session_state:
+        st.session_state.reinvest_periods = [
+            {"start": "16.10.2026", "end": "16.10.2027", "rate": 16.5, "initial": 50000.0},
+            {"start": "16.10.2027", "end": "16.10.2028", "rate": 14.0, "initial": 0.0}
+        ]
+
+    for p_idx, period in enumerate(st.session_state.reinvest_periods):
+        col_p1, col_p2, col_p3, col_p4, col_p5 = st.columns([2, 2, 2, 2, 1])
+        period["start"] = col_p1.text_input(f"Старт {p_idx+1}", period["start"], key=f"p_start_{p_idx}")
+        period["end"] = col_p2.text_input(f"Кінець {p_idx+1}", period["end"], key=f"p_end_{p_idx}")
+        period["rate"] = col_p3.number_input(f"Ставка % {p_idx+1}", value=period["rate"], key=f"p_rate_{p_idx}")
+        period["initial"] = col_p4.number_input(f"Сума {p_idx+1}", value=period["initial"], key=f"p_init_{p_idx}")
+
+        if col_p5.button("🗑️", key=f"del_p_{p_idx}") and len(st.session_state.reinvest_periods) > 1:
+            st.session_state.reinvest_periods.pop(p_idx)
+            st.rerun()
+
+    if st.button("➕ Додати період реінвестування"):
+        last_end = st.session_state.reinvest_periods[-1]["end"] if st.session_state.reinvest_periods else "20.02.2028"
+        st.session_state.reinvest_periods.append({"start": last_end, "end": "20.02.2029", "rate": 12.0, "initial": 0.0})
+        st.rerun()
+
+    fig, ax = plt.subplots(figsize=(10, 5), dpi=100)
+    fig.patch.set_facecolor(fig_bg)
+    ax.set_facecolor(fig_bg)
+
+    today = datetime.now()
+    max_days = 365 * 3
+    total_steps = 60
+    step_days = max(1, max_days // total_steps)
+
+    for idx, b in enumerate(st.session_state.bonds):
+        color = CHART_COLORS[idx % len(CHART_COLORS)]
+        b_inv = b["price"] * b["qty"]
+        daily_rate = (b.get("ytm", 16.0) / 100.0) / 365.0
+
+        try:
+            mat_date = datetime.strptime(b.get("maturity",
